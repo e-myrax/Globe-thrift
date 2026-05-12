@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "user": {
+      "title": "User Profile",
+      "description": "User account information and thrift profile.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "walletAddress": { "type": "string" },
+        "trustScore": { "type": "number", "description": "Reputation score based on payment history" },
+        "role": { "type": "string", "enum": ["member", "organizer", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "circle": {
+      "title": "Thrift Circle",
+      "description": "A group of members contributing funds periodically.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "organizerId": { "type": "string" },
+        "contributionAmount": { "type": "number" },
+        "frequency": { "type": "string", "enum": ["weekly", "bi-weekly", "monthly"] },
+        "maxMembers": { "type": "number" },
+        "currentRotation": { "type": "number" },
+        "totalFunds": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "active", "completed"] },
+        "contractAddress": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "startDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "organizerId", "contributionAmount", "maxMembers"]
+    },
+    "membership": {
+      "title": "Circle Membership",
+      "description": "The link between a user and a circle.",
+      "type": "object",
+      "properties": {
+        "circleId": { "type": "string" },
+        "userId": { "type": "string" },
+        "position": { "type": "number", "description": "The slot in the rotation (1 to maxMembers)" },
+        "status": { "type": "string", "enum": ["invited", "active", "payout_received"] },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["circleId", "userId", "position"]
+    },
+    "contribution": {
+      "title": "Contribution Record",
+      "description": "A record of a payment made by a member.",
+      "type": "object",
+      "properties": {
+        "circleId": { "type": "string" },
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "rotationIndex": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "txHash": { "type": "string" },
+        "status": { "type": "string", "enum": ["confirmed", "failed"] }
+      },
+      "required": ["circleId", "userId", "rotationIndex", "amount"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profiles"
+    },
+    "/circles/{circleId}": {
+      "schema": "circle",
+      "description": "Thrift circles"
+    },
+    "/circles/{circleId}/memberships/{membershipId}": {
+      "schema": "membership",
+      "description": "Members of a specific circle"
+    },
+    "/circles/{circleId}/contributions/{contributionId}": {
+      "schema": "contribution",
+      "description": "Payment records for a circle"
+    }
+  }
+}

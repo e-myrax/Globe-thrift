@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validators ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'photoURL', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 256 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.photoURL is string && data.photoURL.size() <= 1024 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidCircle(data) {
+      return data.keys().hasAll(['name', 'organizerId', 'contributionAmount', 'maxMembers', 'frequency', 'status', 'createdAt']) &&
+             data.name is string && data.name.size() <= 100 &&
+             data.organizerId == request.auth.uid &&
+             data.contributionAmount is number && data.contributionAmount > 0 &&
+             data.maxMembers is number && data.maxMembers >= 2 && data.maxMembers <= 50 &&
+             data.frequency in ['weekly', 'bi-weekly', 'monthly'] &&
+             data.status in ['pending', 'active', 'completed'] &&
+             data.createdAt == request.time;
+    }
+
+    function isValidMembership(data) {
+      return data.keys().hasAll(['circleId', 'userId', 'position', 'status', 'joinedAt']) &&
+             isValidId(data.circleId) &&
+             data.userId is string &&
+             data.position is number && data.position >= 1 &&
+             data.status in ['invited', 'active', 'payout_received'] &&
+             data.joinedAt == request.time;
+    }
+
+    function isMember(circleId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/circles/$(circleId)/memberships/$(request.auth.uid));
+    }
+
+    function isValidContribution(data) {
+      return data.keys().hasAll(['circleId', 'userId', 'amount', 'rotationIndex', 'timestamp', 'status']) &&
+             data.userId == request.auth.uid &&
+             data.amount is number && data.amount > 0 &&
+             data.rotationIndex is number &&
+             data.status in ['confirmed', 'failed'] &&
+             data.timestamp == request.time;
+    }
+
+    // --- Collections ---
+
+    // USERS
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn(); // Allow listing users for search/display
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'walletAddress', 'trustScore'])
+      );
+    }
+
+    // MEMBERSHIPS Collection Group
+    match /{path=**}/memberships/{membershipId} {
+      allow list: if isSignedIn(); // Allow listing members of any circle the user can see
+      allow get: if isSignedIn();
+    }
+
+    // CIRCLES
+    match /circles/{circleId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidCircle(incoming());
+      allow update: if isSignedIn() && (
+        // Only organizer can update core fields
+        (existing().organizerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'status', 'startDate', 'contractAddress', 'twTaskId', 'membersCount'])) ||
+        // Members Can update totalFunds when contributing
+        (isMember(circleId) && incoming().diff(existing()).affectedKeys().hasOnly(['totalFunds']))
+      );
+      allow delete: if isSignedIn() && existing().organizerId == request.auth.uid && existing().status == 'pending';
+
+      // MEMBERSHIPS
+      match /memberships/{membershipId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && isValidMembership(incoming()) && 
+                      (incoming().userId == request.auth.uid || get(/databases/$(database)/documents/circles/$(circleId)).data.organizerId == request.auth.uid);
+        allow update: if isSignedIn() && (
+          (existing().userId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status'])) ||
+          (get(/databases/$(database)/documents/circles/$(circleId)).data.organizerId == request.auth.uid)
+        );
+      }
+
+      // CONTRIBUTIONS
+      match /contributions/{contributionId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && isValidContribution(incoming()) && isMember(circleId);
+        // Contributions are immutable records once confirmed
+        allow update: if false; 
+      }
+    }
+  }
+}
