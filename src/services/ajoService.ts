@@ -38,6 +38,11 @@ interface FirestoreErrorInfo {
 }
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const isPermissionError = error instanceof Error && (
+    error.message.includes('permission-denied') || 
+    error.message.includes('insufficient permissions')
+  );
+
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -48,8 +53,19 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  if (isPermissionError) {
+    console.error('CRITICAL: Firestore Permission Error: ', JSON.stringify(errInfo));
+    throw new Error(JSON.stringify(errInfo));
+  } else {
+    // For network/offline errors, we log but don't necessarily crash with the JSON format
+    console.warn('Firestore Operation Warn:', operationType, path, error);
+    if (error instanceof Error && error.message.includes('offline')) {
+       // Do not throw for offline - let firestore handle the queue
+       return;
+    }
+    throw error;
+  }
 }
 
 export const ajoService = {
@@ -103,10 +119,22 @@ export const ajoService = {
     }
   },
 
+  async markOnboardingCompleted(userId: string) {
+    const path = `users/${userId}`;
+    try {
+      const userRef = doc(db, path);
+      await updateDoc(userRef, { onboardingCompleted: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+
   async syncProfile(user: any) {
+    if (!user) return;
     const path = `users/${user.uid}`;
     try {
       const userRef = doc(db, path);
+      // Use standard getDoc - firestore will use cache if offline
       const userSnap = await getDoc(userRef);
       
       if (!userSnap.exists()) {
@@ -137,7 +165,13 @@ export const ajoService = {
           await updateDoc(userRef, updates);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      // If we are truly offline and Have NO cache, getDoc might fail.
+      // We ignore offline errors here to prevent app crash.
+      if (error?.message?.includes('offline')) {
+        console.warn('SyncProfile skipped: client is offline and no cache available.');
+        return;
+      }
       handleFirestoreError(error, OperationType.WRITE, path);
     }
   },
@@ -151,7 +185,7 @@ export const ajoService = {
     try {
       // 1. Get Organizer Profile for Wallet Address
       const organizerProfile = await this.getUserProfile(data.organizerId);
-      const organizerAddress = organizerProfile?.walletAddress || '0xJexailProtocol';
+      const organizerAddress = organizerProfile?.walletAddress || '0xGlobeProtocol';
 
       // 2. Phase 2: Create (C) — Escrow Initiation
       let twEscrowId = null;
@@ -163,10 +197,10 @@ export const ajoService = {
         }));
 
         const escrow = await trustlessWorkService.initiateEscrow({
-          title: `Ajo: ${data.name}`,
-          description: data.description || `Jexail Ajo Circle Group: ${data.name}`,
+          title: `Thrift: ${data.name}`,
+          description: data.description || `Globe thrift Circle Group: ${data.name}`,
           funder: organizerAddress,
-          provider: '0xJexailSystem', // Multi-sig payout address
+          provider: '0xGlobeSystem', // Multi-sig payout address
           approver: organizerAddress, // Organizer signs off on payouts
           amount: data.contributionAmount * data.maxMembers,
           currency: 'USDC',
@@ -187,7 +221,8 @@ export const ajoService = {
         status: 'pending',
         createdAt: serverTimestamp(),
         contractAddress: 'vEscrow5V9GZf9gW6GvP9V6GvP9V6GvP9V6GvP9V6GvP',
-        twEscrowId: twEscrowId || undefined
+        twEscrowId: twEscrowId || undefined,
+        network: (data as any).network || 'stellar-mainnet'
       };
       await setDoc(newCircleRef, circle);
 
@@ -210,9 +245,23 @@ export const ajoService = {
       if (!circleSnap.exists()) throw new Error('Circle not found');
       
       const circleData = circleSnap.data();
-      const position = requestedPosition || (circleData.membersCount || 0) + 1;
+      const currentMembers = circleData.membersCount || 0;
+      const maxMembers = circleData.maxMembers || 5;
 
+      if (currentMembers >= maxMembers) {
+        throw new Error('This circle is already at full capacity.');
+      }
+
+      // Check if user is already a member
       const membershipRef = doc(db, path);
+      const mSnap = await getDoc(membershipRef);
+      if (mSnap.exists()) {
+        console.warn('User is already a member of this circle');
+        return;
+      }
+
+      const position = requestedPosition || currentMembers + 1;
+
       const membership: Membership = {
         id: userId,
         circleId,
@@ -224,13 +273,37 @@ export const ajoService = {
       await setDoc(membershipRef, membership);
       
       // Update circle member count
-      const membersCount = (circleData.membersCount || 0) + 1;
+      const newMembersCount = currentMembers + 1;
       await updateDoc(circleRef, {
-        membersCount: increment(1),
-        status: membersCount >= (circleData.maxMembers || 5) ? 'active' : 'pending'
+        membersCount: newMembersCount,
+        status: newMembersCount >= maxMembers ? 'active' : 'pending'
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
+    }
+  },
+
+  async updateCircle(circleId: string, updates: Partial<Circle>) {
+    const path = `circles/${circleId}`;
+    try {
+      const circleRef = doc(db, path);
+      // Filter out immutable fields
+      const { id, createdAt, organizerId, ...safeUpdates } = updates as any;
+      await updateDoc(circleRef, safeUpdates);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+
+  async deleteCircle(circleId: string) {
+    const path = `circles/${circleId}`;
+    try {
+      const circleRef = doc(db, path);
+      // In a real app, we might do a soft delete or check for active funds
+      await updateDoc(circleRef, { status: 'completed' }); // Soft delete/archive
+      // await deleteDoc(circleRef); // Hard delete
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
     }
   },
 

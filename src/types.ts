@@ -4,6 +4,7 @@ export interface UserProfile {
   displayName: string;
   photoURL: string;
   walletAddress?: string;
+  onboardingCompleted?: boolean;
   trustScore: number;
   role: 'member' | 'organizer' | 'admin';
   createdAt: any;
@@ -25,6 +26,7 @@ export interface Circle {
   twEscrowId?: string;
   onChainStatus?: string;
   onChainMilestones?: any[];
+  network?: string;
   lastSyncAt?: any;
   createdAt: any;
   startDate?: any;

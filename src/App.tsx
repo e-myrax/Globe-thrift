@@ -20,7 +20,17 @@ import {
   Activity,
   Layers,
   Lock,
-  AlertTriangle
+  AlertTriangle,
+  Share2,
+  Edit2,
+  Trash2,
+  Copy,
+  Check,
+  Search,
+  Filter,
+  ArrowUpDown,
+  ChevronDown,
+  HelpCircle
 } from 'lucide-react';
 import { auth, signInWithGoogle } from './lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -30,10 +40,13 @@ import { Button } from './components/ui/Button';
 import { Card, CardTitle, CardDescription } from './components/ui/Card';
 import { CreateCircleModal } from './components/ui/CreateCircleModal';
 import { cn, formatAddress, formatCurrency } from './lib/utils';
-import { Web3Provider } from './lib/web3';
 import { ajoService } from './services/ajoService';
 import { trustlessWorkService } from './services/trustlessWorkService';
 import { WalletValidationGate } from './components/WalletValidationGate';
+import { WalletConnectionModal } from './components/ui/WalletConnectionModal';
+import { OnboardingModal } from './components/ui/OnboardingModal';
+
+import { Logo } from './components/Logo';
 
 // --- Mock Data for UI ---
 const MOCK_CIRCLES = [
@@ -86,12 +99,12 @@ const VirtualCard = () => (
       <div>
         <p className="label-micro !text-slate-500 mb-1">Available Liquidity</p>
         <div className="flex items-baseline gap-2">
-          <h4 className="text-2xl font-bold text-white">$4,250</h4>
-          <span className="text-xs text-emerald-400 font-mono">USD</span>
+          <h4 className="text-2xl font-bold text-white">₦4,250,000</h4>
+          <span className="text-xs text-emerald-400 font-mono">NGN</span>
         </div>
         <div className="flex items-baseline gap-2 mt-1 opacity-60">
           <h5 className="text-sm font-medium text-slate-300">₦2,150,000</h5>
-          <span className="text-[10px] text-slate-500 font-mono uppercase">NGN</span>
+          <span className="text-[10px] text-slate-500 font-mono uppercase">LOCKED</span>
         </div>
       </div>
 
@@ -385,56 +398,237 @@ const ActivityLog = () => (
 
 const MarketplaceView = ({ circles, onJoin }: { circles: any[], onJoin: (circleId: string) => void }) => {
   const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [freqFilter, setFreqFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('newest');
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+
+  const filteredCircles = React.useMemo(() => {
+    let result = [...(circles || [])];
+
+    // Search
+    if (searchQuery) {
+      result = result.filter(c => 
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+
+    // Frequency
+    if (freqFilter !== 'all') {
+      result = result.filter(c => c.frequency === freqFilter);
+    }
+
+    // Status
+    if (statusFilter !== 'all') {
+      result = result.filter(c => c.status === statusFilter);
+    }
+
+    // Sorting
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'amount-high':
+          return b.contributionAmount - a.contributionAmount;
+        case 'amount-low':
+          return a.contributionAmount - b.contributionAmount;
+        case 'slots':
+          return (b.maxMembers - (b.membersCount || 0)) - (a.maxMembers - (a.membersCount || 0));
+        case 'newest':
+        default:
+          return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+      }
+    });
+
+    return result;
+  }, [circles, searchQuery, freqFilter, statusFilter, sortBy]);
 
   return (
     <div className="space-y-12">
-      <div className="max-w-2xl">
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display tracking-tight text-white">Join the <span className="text-gradient">Marketplace</span></h2>
-        <p className="mt-4 text-slate-400 text-sm sm:text-lg">Browse curated community circles. High trust, low friction.</p>
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+        <div className="max-w-2xl">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display tracking-tight text-white uppercase italic">
+            Global <span className="text-gradient">Marketplace</span>
+          </h2>
+          <p className="mt-4 text-slate-400 text-sm sm:text-lg font-medium leading-relaxed">
+            Discover peer-to-peer savings protocols across jurisdictions. 
+            Automated trust, verifiable participation.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+          <div className="relative group flex-grow sm:flex-grow-0 sm:min-w-[300px]">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+            <input 
+              type="text"
+              placeholder="Search circles, protocols..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all font-medium placeholder:text-slate-600"
+            />
+          </div>
+          <Button 
+            variant="outline" 
+            className={cn(
+              "rounded-2xl gap-2 h-[58px] px-6 border-white/10",
+              isFilterVisible && "bg-indigo-500/10 border-indigo-500/30 text-white"
+            )}
+            onClick={() => setIsFilterVisible(!isFilterVisible)}
+          >
+            <Filter className="w-4 h-4" />
+            Filters
+            { (freqFilter !== 'all' || statusFilter !== 'all') && (
+              <span className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,1)] ml-1" />
+            )}
+          </Button>
+        </div>
       </div>
 
+      <AnimatePresence>
+        {isFilterVisible && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <Card variant="solid" className="p-6 bg-white/[0.03] border-white/5 rounded-3xl grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div>
+                <label className="label-micro block mb-3 opacity-50">Settlement Frequency</label>
+                <div className="flex flex-wrap gap-2">
+                  {['all', 'weekly', 'bi-weekly', 'monthly'].map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setFreqFilter(f)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
+                        freqFilter === f 
+                          ? "bg-indigo-500 border-indigo-400 text-white" 
+                          : "bg-white/5 border-white/5 text-slate-500 hover:border-white/20"
+                      )}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="label-micro block mb-3 opacity-50">Protocol Status</label>
+                <div className="flex flex-wrap gap-2">
+                  {['all', 'pending', 'active'].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setStatusFilter(s)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
+                        statusFilter === s 
+                          ? "bg-emerald-500 border-emerald-400 text-white" 
+                          : "bg-white/5 border-white/5 text-slate-500 hover:border-white/20"
+                      )}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="label-micro block mb-3 opacity-50">Sort Ordering</label>
+                <div className="relative">
+                  <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
+                  <select 
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full bg-white/5 border border-white/5 rounded-xl pl-9 pr-4 py-2 text-xs font-bold text-white focus:outline-none focus:border-indigo-500/50 appearance-none bg-transparent"
+                  >
+                    <option value="newest" className="bg-[#0a0a0f]">Newest Protocol</option>
+                    <option value="amount-high" className="bg-[#0a0a0f]">Amount: High to Low</option>
+                    <option value="amount-low" className="bg-[#0a0a0f]">Amount: Low to High</option>
+                    <option value="slots" className="bg-[#0a0a0f]">Availability: High to Low</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {circles.map(circle => (
-          <Card key={circle.id} variant="glass" hoverable className="p-8">
-            <div className="flex justify-between items-start mb-6">
+        {filteredCircles.map(circle => (
+          <Card key={circle.id} variant="glass" hoverable className="p-8 relative group overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Globe className="w-20 h-20 text-indigo-400 -mr-8 -mt-8" />
+            </div>
+            
+            <div className="flex justify-between items-start mb-6 relative">
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 ring-1 ring-indigo-500/20">
                 <Plus className="w-6 h-6" />
               </div>
               <div className="text-right">
                 <p className="label-micro !text-slate-500 text-[9px]">Potential Payout</p>
-                <p className="text-xl font-bold text-white">{formatCurrency(circle.contributionAmount * circle.maxMembers)}</p>
+                <p className="text-xl font-bold text-white font-mono">{formatCurrency(circle.contributionAmount * circle.maxMembers)}</p>
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2 font-display">{circle.name}</h3>
-            <p className="text-xs text-slate-400 font-medium leading-relaxed mb-6 h-12 line-clamp-2">{circle.description || 'Public rotation group for verified members.'}</p>
+
+            <h3 className="text-2xl font-bold text-white mb-2 font-display tracking-tight text-balance">{circle.name}</h3>
+            <p className="text-xs text-slate-400 font-medium leading-relaxed mb-8 h-12 line-clamp-2 opacity-80">{circle.description || 'Public rotation group for verified members.'}</p>
             
-            <div className="space-y-4 pt-4 border-t border-white/5">
-              <div className="flex justify-between text-xs">
+            <div className="space-y-4 pt-6 border-t border-white/5 relative">
+              <div className="flex justify-between items-center text-[11px]">
                 <span className="text-slate-500 uppercase tracking-widest font-bold">Contribution</span>
-                <span className="text-emerald-400 font-mono font-bold">{formatCurrency(circle.contributionAmount)} / {circle.frequency}</span>
+                <div className="text-right">
+                  <span className="text-indigo-400 font-mono font-bold block">{formatCurrency(circle.contributionAmount)}</span>
+                  <span className="text-[9px] text-slate-600 uppercase font-bold tracking-widest">{circle.frequency}</span>
+                </div>
               </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-500 uppercase tracking-widest font-bold">Slots Left</span>
-                <span className="text-white font-bold">{circle.maxMembers - (circle.membersCount || 0)} / {circle.maxMembers}</span>
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="text-slate-500 uppercase tracking-widest font-bold">Liquidity Status</span>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-widest",
+                  circle.status === 'active' ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400 text-[8px]"
+                )}>
+                  {circle.status}
+                </span>
               </div>
-              <Button 
-                variant="primary" 
-                className="w-full h-12 rounded-xl mt-4"
-                isLoading={joiningId === circle.id}
-                onClick={async () => {
-                  setJoiningId(circle.id);
-                  try {
-                    await onJoin(circle.id);
-                  } finally {
-                    setJoiningId(null);
-                  }
-                }}
-              >
-                Join Rotation
-              </Button>
+              <div className="flex justify-between items-center text-[11px] mb-4">
+                <span className="text-slate-500 uppercase tracking-widest font-bold">Protocol Access</span>
+                <span className="text-white font-bold">{circle.maxMembers - (circle.membersCount || 0)} / {circle.maxMembers} Open Slots</span>
+              </div>
+              <div className="flex justify-between items-center text-[11px] mb-4">
+                <span className="text-slate-500 uppercase tracking-widest font-bold">Settlement Layer</span>
+                <span className="text-indigo-400 font-bold flex items-center gap-1 uppercase tracking-tighter">
+                  <Globe className="w-3 h-3" /> {circle.network?.split('-')[0] || 'stellar'}
+                </span>
+              </div>
+
+              <div className="pt-2">
+                <Button 
+                  variant="primary" 
+                  className="w-full h-14 rounded-2xl shadow-xl shadow-indigo-600/10 group/btn"
+                  isLoading={joiningId === circle.id}
+                  onClick={async () => {
+                    setJoiningId(circle.id);
+                    try {
+                      await onJoin(circle.id);
+                    } finally {
+                      setJoiningId(null);
+                    }
+                  }}
+                >
+                  Join Rotation <ArrowRight className="ml-2 w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                </Button>
+              </div>
             </div>
           </Card>
         ))}
+        {filteredCircles.length === 0 && (circles || []).length > 0 && (
+          <div className="col-span-full py-20 text-center border-2 border-dashed border-white/5 rounded-[2rem]">
+             <Activity className="w-12 h-12 text-slate-600 mx-auto mb-4 opacity-20" />
+             <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">No matching protocols found</p>
+          </div>
+        )}
         {(circles || []).length === 0 && [1,2,3].map(i => (
           <Card key={i} variant="glass" className="p-8 opacity-40 grayscale pointer-events-none">
             <div className="h-6 w-32 bg-slate-800 rounded mb-4" />
@@ -601,12 +795,12 @@ const BusinessView = () => (
       <Card variant="glass" className="p-4 relative">
         <div className="bg-[#050508] rounded-2xl p-6 font-mono text-[11px] text-slate-400 leading-relaxed shadow-inner border border-white/5">
           <p className="text-indigo-400 mb-2">// Initialize Corporate Circle API</p>
-          <p><span className="text-emerald-400">const</span> jexail = <span className="text-emerald-400">new</span> JexailProtocol({'{'}</p>
-          <p className="pl-4">apiKey: <span className="text-amber-400">'jp_8820_safe'</span>,</p>
+          <p><span className="text-emerald-400">const</span> globe = <span className="text-emerald-400">new</span> GlobeProtocol({'{'}</p>
+          <p className="pl-4">apiKey: <span className="text-amber-400">'globe_8820_safe'</span>,</p>
           <p className="pl-4">mode: <span className="text-amber-400">'batch_payroll'</span></p>
           <p>{'}'});</p>
           <br/>
-          <p><span className="text-indigo-400">await</span> jexail.deployCircle({'{'}</p>
+          <p><span className="text-indigo-400">await</span> globe.deployCircle({'{'}</p>
           <p className="pl-4 text-slate-500">name: <span className="text-amber-400">'Eng Team Monthly'</span>,</p>
           <p className="pl-4 text-slate-500">amount: 2500,</p>
           <p className="pl-4 text-slate-500">membersCount: 12</p>
@@ -663,18 +857,13 @@ const LandingPage = () => {
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="flex items-center gap-3 mb-8 sm:mb-10"
+                className="mb-8 sm:mb-10"
               >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/40 border border-white/20">
-                  <ShieldCheck className="text-white w-6 h-6 sm:w-7 sm:h-7" />
-                </div>
-                <div className="text-left">
-                  <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white leading-none uppercase font-display">JEXAIL</h1>
-                  <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.3em] text-indigo-400 mt-1 font-bold">Ajo Protocol v2.0</p>
+                <Logo>
                   <p className="text-[8px] sm:text-[9px] uppercase tracking-[0.1em] text-slate-500 mt-1 font-medium">
                     Powered by <a href="https://www.trustlesswork.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors">Trustless Work</a>
                   </p>
-                </div>
+                </Logo>
               </motion.div>
 
               <motion.h1 
@@ -749,12 +938,12 @@ const LandingPage = () => {
                 </div>
                 <div className="bg-[#050508] rounded-2xl p-4 sm:p-6 font-mono text-[10px] sm:text-xs text-slate-400 leading-relaxed shadow-inner border border-white/5 overflow-x-auto whitespace-pre">
                   <p className="text-indigo-400 mb-2">// Corporate Payroll Integration</p>
-                  <p><span className="text-emerald-400">const</span> jexail = <span className="text-emerald-400">new</span> JexailProtocol({'{'}</p>
-                  <p className="pl-4">apiKey: <span className="text-amber-400">'jp_corp_8820'</span>,</p>
+                  <p><span className="text-emerald-400">const</span> globe = <span className="text-emerald-400">new</span> GlobeProtocol({'{'}</p>
+                  <p className="pl-4">apiKey: <span className="text-amber-400">'globe_corp_8820'</span>,</p>
                   <p className="pl-4">environment: <span className="text-amber-400">'production'</span></p>
                   <p>{'}'});</p>
                   <br/>
-                  <p><span className="text-indigo-400">await</span> jexail.enablePayrollDeduction({'{'}</p>
+                  <p><span className="text-indigo-400">await</span> globe.enablePayrollDeduction({'{'}</p>
                   <p className="pl-4">employeeId: <span className="text-amber-400">'EMP_4420'</span>,</p>
                   <p className="pl-4">circleId: <span className="text-amber-400">'hq_savings_pool'</span>,</p>
                   <p className="pl-4">amountBasis: <span className="text-amber-400">'percentage'</span>,</p>
@@ -773,7 +962,7 @@ const LandingPage = () => {
                 Integrate Ajo into <span className="text-gradient">Corporate Payroll</span>.
               </h2>
               <p className="text-base sm:text-lg text-slate-400 mb-8 sm:mb-10 leading-relaxed">
-                Empower your workforce with automated, non-custodial savings benefits. Jexail Protocol integrates directly with existing HR systems to route contributions before they leave the treasury.
+                Empower your workforce with automated, non-custodial savings benefits. Globe Protocol integrates directly with existing HR systems to route contributions before they leave the treasury.
               </p>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-10 sm:mb-12">
@@ -822,7 +1011,7 @@ const LandingPage = () => {
             <Card variant="glass" className="p-6 sm:p-10 hover:border-white/20 transition-all sm:col-span-2 lg:col-span-1">
               <FeatureIcon icon={Layers} color="bg-white/5 text-white" />
               <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 font-display">Non-Custodial</h3>
-              <p className="text-slate-400 text-sm sm:text-base leading-relaxed">Jexail never holds your funds. They stay in a program-locked escrow, governed by the protocol.</p>
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed">Globe thrift never holds your funds. They stay in a program-locked escrow, governed by the protocol.</p>
             </Card>
           </div>
         </div>
@@ -851,16 +1040,17 @@ const LandingPage = () => {
 
       <footer className="mt-20 border-t border-white/5 pt-12 px-4 sm:px-6">
         <div className="mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-center gap-8 text-slate-500 mb-12">
-          <div className="flex items-center gap-2 font-bold text-white tracking-widest uppercase">
-            <ShieldCheck className="w-5 h-5 text-indigo-500" /> Jexail Ajo
-          </div>
+        <div className="flex items-center gap-2 font-bold text-white tracking-widest uppercase">
+          <Logo showText={false} className="gap-2" />
+          <span className="ml-1">Globe thrift</span>
+        </div>
           <div className="flex flex-wrap justify-center gap-6 sm:gap-12 text-[10px] uppercase font-bold tracking-[0.2em] transition-colors">
             <a href="#" className="hover:text-white">Docs</a>
             <a href="#" className="hover:text-white">Business</a>
             <a href="#" className="hover:text-white">Security</a>
             <a href="#" className="hover:text-white">Twitter</a>
           </div>
-          <div className="text-[10px] font-mono text-center md:text-right">© 2024 JEXAIL FINANCE. ALL RIGHTS RESERVED.</div>
+          <div className="text-[10px] font-mono text-center md:text-right">© 2024 GLOBE THRIFT FINANCE. ALL RIGHTS RESERVED.</div>
         </div>
       </footer>
     </div>
@@ -871,7 +1061,7 @@ const AgentsView = () => (
   <div className="max-w-4xl mx-auto space-y-12">
     <div>
       <h2 className="text-3xl sm:text-5xl font-bold font-display tracking-tight text-white mb-4">Developer <span className="text-gradient">Hub</span></h2>
-      <p className="text-slate-400 text-base sm:text-lg">Integrate the Jexail Protocol into your workflow using the Trustless Work SDK.</p>
+      <p className="text-slate-400 text-base sm:text-lg">Integrate the Globe Protocol into your workflow using the Trustless Work SDK.</p>
     </div>
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -880,7 +1070,7 @@ const AgentsView = () => (
           <Zap className="w-5 h-5 text-indigo-400" /> System Architecture
         </h3>
         <p className="text-sm text-slate-500 leading-relaxed mb-6">
-          Jexail uses a hybrid architecture: Firebase for high-frequency social interactions and Trustless Work for cryptographically-secure escrow.
+          Globe uses a hybrid architecture: Firebase for high-frequency social interactions and Trustless Work for cryptographically-secure escrow.
         </p>
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs p-3 rounded-lg bg-white/5 border border-white/5">
@@ -946,7 +1136,7 @@ const AgentsView = () => (
           <h4 className="text-white font-bold mb-2 flex justify-between uppercase tracking-widest text-[11px]">Public Chain Discovery <Globe className="w-4 h-4 text-emerald-400" /></h4>
           <p className="text-[10px] text-slate-500 mb-4 leading-relaxed italic">
             The Trustless Work API provides a <code>/networks</code> endpoint to discover supported public chains (Solana, Base, Polygon). 
-            Jexail uses this to determine the optimal settlement layer.
+            Globe uses this to determine the optimal settlement layer.
           </p>
           <div className="bg-black/40 p-3 rounded-lg border border-white/5 font-mono text-[9px] text-emerald-300">
             GET /v1/networks
@@ -957,11 +1147,12 @@ const AgentsView = () => (
   </div>
 );
 
-const UserDashboard = (props: { user: any, circles: any[], profile: any }) => {
+const UserDashboard = (props: { user: any }) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   if (!mounted) {
@@ -975,41 +1166,133 @@ const UserDashboard = (props: { user: any, circles: any[], profile: any }) => {
   return <UserDashboardContent {...props} />;
 };
 
-const UserDashboardContent = ({ user, circles, profile }: { user: any, circles: any[], profile: any }) => {
+const UserDashboardContent = ({ user }: { user: any }) => {
   const [activeView, setActiveView] = useState<View>('overview');
   const [isCircleModalOpen, setIsCircleModalOpen] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(null);
+  const [editingCircle, setEditingCircle] = useState<any>(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const { address, isConnected, isConnecting } = useAccount();
-  const { connect } = useConnect();
   const { disconnect } = useDisconnect();
+  
+  const [circles, setCircles] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
   const [communityCircles, setCommunityCircles] = useState<any[]>([]);
 
   const [twNetworks, setTwNetworks] = useState<any[]>([]);
   const [isTwConnected, setIsTwConnected] = useState(false);
+
+  const [inviteId, setInviteId] = useState<string | null>(null);
+  const [inviteCircle, setInviteCircle] = useState<any>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const inv = params.get('invite');
+    if (inv) {
+      setInviteId(inv);
+      ajoService.getCircle(inv).then(setInviteCircle);
+    }
+  }, []);
+
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleShare = (circleId: string) => {
+    const url = `${window.location.origin}${window.location.pathname}?invite=${circleId}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(circleId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleDelete = async (circleId: string) => {
+    if (confirm('Are you sure you want to archive this circle?')) {
+      await ajoService.deleteCircle(circleId);
+      alert('Circle archived.');
+    }
+  };
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      ajoService.syncProfile(user);
+    }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (user) {
+      const unsubscribeCircles = ajoService.onUserCircles(user.uid, (data) => {
+        setTimeout(() => setCircles(data), 0);
+      });
+      const unsubscribeProfile = ajoService.onUserProfile(user.uid, (data) => {
+        setTimeout(() => setProfile(data), 0);
+      });
+
+      return () => {
+        unsubscribeCircles();
+        unsubscribeProfile();
+      };
+    }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (inviteId && circles.length > 0) {
+      const isAlreadyMember = circles.some(c => c.id === inviteId);
+      if (isAlreadyMember) {
+        setInviteId(null);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [inviteId, circles.length]);
+
+  useEffect(() => {
+    if (profile && profile.onboardingCompleted === undefined) {
+      setIsOnboardingOpen(true);
+    }
+  }, [profile?.onboardingCompleted]);
+
+  const handleOnboardingComplete = () => {
+    if (user) {
+      ajoService.markOnboardingCompleted(user.uid);
+      setIsOnboardingOpen(false);
+    }
+  };
 
   const trustScore = profile?.trustScore || 100;
   const [walletReadiness, setWalletReadiness] = useState<any>(null);
 
   useEffect(() => {
     const fetchNetworks = async () => {
-      const networks = await trustlessWorkService.getNetworks();
-      Promise.resolve().then(() => {
+      try {
+        const networks = await trustlessWorkService.getNetworks();
         setTwNetworks(networks);
         setIsTwConnected(networks.length > 0);
-      });
+      } catch (e) {
+        console.error('Failed to fetch networks:', e);
+      }
     };
     fetchNetworks();
   }, []);
 
   const handleWalletValidated = React.useCallback((status: any) => {
-    // Wrap in microtask to ensure we're not in a render cycle
-    Promise.resolve().then(() => setWalletReadiness(status));
+    setTimeout(() => setWalletReadiness(status), 0);
   }, []);
 
   const activeNetwork = twNetworks[0]?.name || 'Local Gateway';
 
   useEffect(() => {
     const unsubCommunity = ajoService.onCommunityCircles((data) => {
-      Promise.resolve().then(() => setCommunityCircles(data));
+      setTimeout(() => setCommunityCircles(data), 0);
     });
     return () => unsubCommunity();
   }, []);
@@ -1020,14 +1303,92 @@ const UserDashboardContent = ({ user, circles, profile }: { user: any, circles: 
       await ajoService.joinCircle(circleId, user.uid);
       alert('Joined circle successfully!');
       setActiveView('overview');
-    } catch (e) {
-      alert('Failed to join circle. See console for details.');
+      setInviteId(null);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (e: any) {
+      alert(e.message || 'Failed to join circle.');
     }
   };
 
-  const activeCircles = circles.length > 0 ? circles : MOCK_CIRCLES;
+  const activeCircles = circles.length > 0 ? circles : [];
 
   const renderContent = () => {
+    if (inviteId && inviteCircle) {
+      return (
+        <div className="max-w-2xl mx-auto py-12">
+          <Card variant="glass" className="p-10 text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50" />
+            
+            <div className="w-20 h-20 bg-indigo-600/20 rounded-3xl flex items-center justify-center text-indigo-400 mx-auto mb-8 shadow-2xl shadow-indigo-600/20 ring-1 ring-indigo-500/20">
+              <Plus className="w-10 h-10" />
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-2 font-display">Special Invitation</h2>
+            <p className="text-slate-400 mb-8 max-w-sm mx-auto leading-relaxed">
+              You've been invited to join <span className="text-white font-bold">{inviteCircle.name}</span>.
+              This circle uses <span className="text-indigo-400 font-mono">Globe Protocol</span> for automated trustless payouts.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-4 mb-10 text-left">
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/20 transition-colors">
+                <p className="label-micro !text-indigo-400/60 mb-1">Rotational Deposit</p>
+                <p className="text-xl font-bold text-white font-mono">{formatCurrency(inviteCircle.contributionAmount)}</p>
+              </div>
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/20 transition-colors">
+                <p className="label-micro !text-indigo-400/60 mb-1">Frequency</p>
+                <p className="text-xl font-bold text-white uppercase tracking-widest text-[10px] sm:text-xs mt-1">{inviteCircle.frequency}</p>
+              </div>
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/20 transition-colors">
+                <p className="label-micro !text-emerald-400/60 mb-1">Total Pool Payout</p>
+                <p className="text-xl font-bold text-emerald-400 font-mono">{formatCurrency(inviteCircle.contributionAmount * inviteCircle.maxMembers)}</p>
+              </div>
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/20 transition-colors">
+                <p className="label-micro !text-indigo-400/60 mb-1">Availability</p>
+                <p className="text-xl font-bold text-white tracking-widest">{inviteCircle.membersCount || 0} / {inviteCircle.maxMembers}</p>
+              </div>
+            </div>
+
+            {user ? (
+              <div className="flex flex-col gap-4">
+                <Button 
+                  variant="primary" 
+                  size="lg" 
+                  className="w-full py-6 rounded-2xl shadow-2xl shadow-indigo-600/30 text-lg"
+                  onClick={() => handleJoinCircle(inviteCircle.id)}
+                >
+                  Accept & Activate Protocol
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="text-slate-500 hover:text-white"
+                  onClick={() => {
+                    setInviteId(null);
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                  }}
+                >
+                  Decline Invitation
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs font-bold uppercase tracking-widest">
+                  Authentication Required to Join Circle
+                </div>
+                <Button 
+                  variant="primary" 
+                  size="lg" 
+                  className="w-full py-6 rounded-2xl"
+                  onClick={() => signInWithGoogle()}
+                >
+                  Sign in with Google to Accept
+                </Button>
+              </div>
+            )}
+          </Card>
+        </div>
+      );
+    }
+
     switch (activeView) {
       case 'marketplace':
         return <MarketplaceView circles={communityCircles} onJoin={handleJoinCircle} />;
@@ -1072,7 +1433,7 @@ const UserDashboardContent = ({ user, circles, profile }: { user: any, circles: 
                     <h2 className="text-3xl font-bold font-display tracking-tight">Your Circles</h2>
                     <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Ongoing rotations & state</p>
                   </div>
-                  <Button size="sm" className="gap-2 rounded-xl" onClick={() => setIsCircleModalOpen(true)}>
+                  <Button size="sm" className="gap-2 rounded-xl" onClick={() => { setEditingCircle(null); setIsCircleModalOpen(true); }}>
                     <Plus className="w-4 h-4" /> New Circle
                   </Button>
                 </div>
@@ -1089,25 +1450,50 @@ const UserDashboardContent = ({ user, circles, profile }: { user: any, circles: 
                             <p className="text-[10px] sm:text-xs text-slate-400 flex items-center gap-1.5 uppercase font-bold tracking-widest">
                               <DollarSign className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-emerald-400" /> {formatCurrency(circle.contributionAmount)} / {circle.frequency}
                             </p>
+                            <p className="text-[10px] sm:text-xs text-slate-400 flex items-center gap-1.5 uppercase font-bold tracking-widest">
+                              <Globe className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-indigo-400" /> {circle.network?.split('-')[0] || 'stellar'}
+                            </p>
                           </div>
                         </div>
 
                         <div className="flex flex-col items-start sm:items-end gap-2 w-full sm:w-auto shrink-0">
-                          <div className="flex flex-wrap sm:flex-col items-center sm:items-end gap-2 sm:gap-1">
-                            {circle.role === 'organizer' && (
-                              <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full border border-indigo-500/20">
-                                Organizer
-                              </span>
-                            )}
+                          <div className="flex flex-wrap sm:flex-col items-center sm:items-end gap-4 sm:gap-2">
+                             <div className="flex gap-2">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleShare(circle.id); }}
+                                className={cn(
+                                  "p-2 rounded-lg border transition-all flex items-center justify-center",
+                                  copiedId === circle.id 
+                                    ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" 
+                                    : "bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+                                )}
+                                title={copiedId === circle.id ? "Copied!" : "Share Invite Link"}
+                              >
+                                {copiedId === circle.id ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                              </button>
+                              {circle.organizerId === user.uid && (
+                                <>
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); setEditingCircle(circle); setIsCircleModalOpen(true); }}
+                                    className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-400 hover:bg-indigo-500/20 transition-all"
+                                    title="Edit Circle"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); handleDelete(circle.id); }}
+                                    className="p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 hover:bg-red-500/20 transition-all"
+                                    title="Archive Circle"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                             </div>
                             <div className="text-left sm:text-right">
                               <p className="text-[14px] sm:text-2xl font-mono text-white tracking-tighter">{formatCurrency(circle.contributionAmount * circle.maxMembers)}</p>
                             </div>
                           </div>
-                          {circle.twTaskId && (
-                            <div className="flex items-center gap-1.5 text-[8px] sm:text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
-                              <ShieldCheck className="w-3 h-3" /> Escrow Active
-                            </div>
-                          )}
                         </div>
                       </div>
 
@@ -1135,26 +1521,16 @@ const UserDashboardContent = ({ user, circles, profile }: { user: any, circles: 
                             View Protocol details <ArrowRight className="ml-2 w-4 h-4" />
                           </Button>
                         </div>
-
-                        {circle.contractAddress && (
-                          <div className="mt-6 p-4 rounded-2xl bg-[#0a0a0f] border border-white/5 flex items-center justify-between group/contract hover:border-indigo-500/30 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                                <ShieldCheck className="w-4 h-4" />
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Contract Protocol</p>
-                                <p className="text-xs font-mono text-white font-bold">{circle.contractAddress}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest px-2 py-1 bg-emerald-500/10 rounded-lg">Verified</span>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </Card>
                   ))}
+                  {circles.length === 0 && (
+                    <div className="text-center py-20 border-2 border-dashed border-white/5 rounded-[2rem] opacity-30">
+                      <Users className="w-16 h-16 mx-auto mb-6 text-slate-600" />
+                      <p className="text-lg font-bold text-white font-display mb-2">No Active Savings Circles</p>
+                      <p className="text-xs uppercase tracking-[0.2em]">Join the marketplace or create your own</p>
+                    </div>
+                  )}
                 </div>
               </section>
             </div>
@@ -1170,17 +1546,25 @@ const UserDashboardContent = ({ user, circles, profile }: { user: any, circles: 
   return (
     <div className="min-h-screen px-4 sm:px-6 py-4 sm:py-6 max-w-[1400px] mx-auto relative">
       <BackgroundBlobs />
-      <CreateCircleModal isOpen={isCircleModalOpen} onClose={() => setIsCircleModalOpen(false)} />
+      <CreateCircleModal 
+        isOpen={isCircleModalOpen} 
+        onClose={() => { setIsCircleModalOpen(false); setEditingCircle(null); }} 
+        circle={editingCircle}
+      />
+      <WalletConnectionModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+        onConnect={(networkId) => setSelectedNetworkId(networkId)}
+      />
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        onComplete={handleOnboardingComplete}
+      />
       
       <header className="flex items-center justify-between glass p-3 sm:p-4 mb-6 sm:mb-8 rounded-2xl z-20 sticky top-4 sm:top-6 bg-[#050508]/40 backdrop-blur-2xl border-white/5 shadow-2xl">
         <div className="flex items-center gap-3 cursor-pointer shrink-0" onClick={() => setActiveView('overview')}>
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <ShieldCheck className="text-white w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-          <div className="hidden lg:block">
-            <h1 className="text-sm sm:text-xl font-bold tracking-tight text-white leading-none uppercase">JEXAIL AJO</h1>
-            <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-indigo-400 mt-1 font-semibold">Digital Trust Protocol</p>
-          </div>
+          <Logo />
         </div>
 
         <nav className="flex gap-3 sm:gap-6 lg:gap-8 items-center px-4 overflow-x-auto no-scrollbar scroll-smooth">
@@ -1208,6 +1592,21 @@ const UserDashboardContent = ({ user, circles, profile }: { user: any, circles: 
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <div className="hidden xs:flex flex-col items-end mr-1">
+            <span className="label-micro !text-slate-500">Service Status</span>
+            <div className="flex items-center gap-1.5">
+               <span className={cn(
+                 "text-[8px] font-bold uppercase tracking-widest",
+                 isOffline ? "text-amber-500" : "text-emerald-500"
+               )}>
+                 {isOffline ? 'Sync Paused' : 'Synced'}
+               </span>
+               <div className={cn(
+                 "w-1 h-1 rounded-full",
+                 isOffline ? "bg-amber-500 animate-pulse" : "bg-emerald-500"
+               )} />
+            </div>
+          </div>
           <div className="hidden sm:flex flex-col items-end mr-2">
             <span className="label-micro !text-slate-500">Status</span>
             <span className={cn(
@@ -1224,10 +1623,19 @@ const UserDashboardContent = ({ user, circles, profile }: { user: any, circles: 
               <LogOut className="ml-1 sm:ml-2 w-3 h-3" />
             </Button>
           ) : (
-            <Button variant="primary" size="sm" onClick={() => connect({ connector: metaMask() })} className="rounded-xl flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-3 sm:px-4">
+            <Button variant="primary" size="sm" onClick={() => setIsWalletModalOpen(true)} className="rounded-xl flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-3 sm:px-4">
               Connect
             </Button>
           )}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsOnboardingOpen(true)} 
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center group p-0"
+            title="Help & Tutorial"
+          >
+            <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500 group-hover:text-indigo-400 transition-colors" />
+          </Button>
           <button onClick={() => auth.signOut()} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-800 border border-white/5 overflow-hidden flex items-center justify-center relative group">
             {user.photoURL ? <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" /> : <Users className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" />}
             <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-indigo-600 rounded-full border border-slate-900 flex items-center justify-center text-[7px] font-bold text-white shadow-lg">
@@ -1257,24 +1665,6 @@ const UserDashboardContent = ({ user, circles, profile }: { user: any, circles: 
 
 export default function App() {
   const [user, loading] = useAuthState(auth);
-  const [circles, setCircles] = useState<any[]>([]);
-  const [profile, setProfile] = useState<any>(null);
-
-  useEffect(() => {
-    if (user) {
-      ajoService.syncProfile(user);
-      const unsubscribeCircles = ajoService.onUserCircles(user.uid, (data) => {
-        Promise.resolve().then(() => setCircles(data));
-      });
-      const unsubscribeProfile = ajoService.onUserProfile(user.uid, (data) => {
-        Promise.resolve().then(() => setProfile(data));
-      });
-      return () => {
-        unsubscribeCircles();
-        unsubscribeProfile();
-      };
-    }
-  }, [user]);
 
   if (loading) {
     return (
@@ -1285,40 +1675,36 @@ export default function App() {
           transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
           className="flex flex-col items-center gap-6"
         >
-          <div className="w-20 h-20 rounded-[2rem] bg-indigo-600 flex items-center justify-center shadow-2xl shadow-indigo-500/20 ring-1 ring-white/20">
-            <ShieldCheck className="text-white w-10 h-10" />
-          </div>
-          <p className="label-micro !text-indigo-400">Synchronizing Protocol State</p>
+          <Logo showText={false} iconClassName="w-20 h-20 shadow-indigo-500/20 ring-1 ring-white/20" />
+          <p className="label-micro !text-indigo-400">Globe Thrift: Synchronizing Protocol State</p>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <Web3Provider>
-      <div className="min-h-screen">
-        <AnimatePresence mode="wait">
-          {!user ? (
-            <motion.div
-              key="landing"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <LandingPage />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="dashboard"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-            >
-              <UserDashboard user={user} circles={circles} profile={profile} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </Web3Provider>
+    <div className="min-h-screen">
+      <AnimatePresence mode="wait">
+        {!user ? (
+          <motion.div
+            key="landing"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <LandingPage />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="dashboard"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            <UserDashboard user={user} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

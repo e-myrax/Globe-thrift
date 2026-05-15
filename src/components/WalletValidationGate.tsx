@@ -18,15 +18,14 @@ export const WalletValidationGate: React.FC<WalletValidationGateProps> = ({ addr
     setIsValidating(true);
     try {
       const result = await trustlessWorkService.validateWalletReadiness(address);
-      // Defensive: ensure state updates don't happen during render phase
-      Promise.resolve().then(() => {
+      setTimeout(() => {
         setStatus(result);
         if (result.ok && onValidated) {
           onValidated(result);
         }
-      });
+      }, 0);
     } finally {
-      Promise.resolve().then(() => setIsValidating(false));
+      setTimeout(() => setIsValidating(false), 0);
     }
   };
 
