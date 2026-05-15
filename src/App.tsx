@@ -812,31 +812,67 @@ const BusinessView = () => (
   </div>
 );
 
-const HowItWorksView = () => (
-  <div className="max-w-4xl mx-auto space-y-12 sm:space-y-20">
-    <div className="text-center">
-      <h2 className="text-3xl sm:text-5xl font-bold font-display text-white mb-4">How the Protocol <span className="text-gradient">Operates</span></h2>
-      <p className="text-slate-400 text-sm sm:text-base px-4">Four steps to decentralized financial freedom.</p>
-    </div>
+const HowItWorksSection = () => (
+  <section id="how-it-works" className="py-20 sm:py-32 px-4 sm:px-6">
+    <div className="max-w-6xl mx-auto space-y-16 sm:space-y-24">
+      <div className="text-center max-w-3xl mx-auto">
+        <h2 className="text-4xl sm:text-6xl font-bold font-display text-white mb-6">Master the <span className="text-gradient">Circle</span></h2>
+        <p className="text-slate-400 text-base sm:text-lg">Follow this guide to transition from individual savings to community-powered financial growth.</p>
+      </div>
 
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 px-4 sm:px-0">
-      {[
-        { step: '01', title: 'Connect Identity', desc: 'Securely link your Web3 wallet and verify your digital trust score.', icon: ShieldCheck },
-        { step: '02', title: 'Join a Rotation', desc: 'Select a circle that matches your financial goals and contribution capacity.', icon: Plus },
-        { step: '03', title: 'Smart Escrow', desc: 'Funds are locked in a non-custodial contract, executed only on rotation completion.', icon: Layers },
-        { step: '04', title: 'Lump Sum Payout', desc: 'Receive the full collective amount on your turn, interest-free.', icon: Award },
-      ].map((item, i) => (
-        <Card key={i} variant="glass" className="p-6 sm:p-8 group relative overflow-hidden">
-          <span className="absolute -top-4 -right-4 text-7xl sm:text-9xl font-bold text-white/[0.02] pointer-events-none group-hover:text-indigo-500/5 transition-all">{item.step}</span>
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-4 sm:mb-6 ring-1 ring-indigo-500/20 group-hover:bg-indigo-500 transition-colors group-hover:text-white">
-            <item.icon className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3 font-display">{item.title}</h3>
-          <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">{item.desc}</p>
-        </Card>
-      ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10">
+        {[
+          { 
+            step: '01', 
+            title: 'Protocol Identity & Trust', 
+            desc: 'Connect your wallet to establish your identity. Your trust score is the heartbeat of your profile—it grows with every successful contribution and unlocks higher-tier circles.',
+            icon: ShieldCheck,
+            color: 'text-indigo-400',
+            bg: 'bg-indigo-500/10'
+          },
+          { 
+            step: '02', 
+            title: 'Initiate or Join a Circle', 
+            desc: 'Browse the Marketplace for existing pools or launch your own. Define the amount, frequency, and member count. As an organizer, you set the rules for your social circle.', 
+            icon: Plus,
+            color: 'text-emerald-400',
+            bg: 'bg-emerald-500/10'
+          },
+          { 
+            step: '03', 
+            title: 'Cyclical Contributions', 
+            desc: 'Funds are periodically committed to the non-custodial smart escrow. Our protocol ensures everything is locked safely via Trustless Work, preventing any single point of failure.', 
+            icon: Layers,
+            color: 'text-indigo-400',
+            bg: 'bg-indigo-500/10'
+          },
+          { 
+            step: '04', 
+            title: 'Transparent Rotations', 
+            desc: 'Payouts happen automatically and transparently. When your turn comes, the collective amount is released to your wallet—no interest, no hidden fees, just shared capital.', 
+            icon: Award,
+            color: 'text-emerald-400',
+            bg: 'bg-emerald-500/10'
+          },
+        ].map((item, i) => (
+          <Card key={item.step} variant="glass" className="p-6 sm:p-12 group relative overflow-hidden border-white/5 hover:border-white/20 transition-all duration-500">
+              <span className="absolute -top-6 -right-6 text-7xl sm:text-9xl font-black text-white/[0.03] pointer-events-none group-hover:text-indigo-500/5 transition-all">{item.step}</span>
+              
+              <div className={cn("w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl flex items-center justify-center mb-6 sm:mb-8 ring-1 ring-white/10 shadow-2xl group-hover:scale-110 transition-transform", item.bg, item.color)}>
+                <item.icon className="w-6 h-6 sm:w-8 sm:h-8" />
+              </div>
+              
+              <h3 className="text-xl sm:text-3xl font-bold text-white mb-3 sm:mb-4 font-display tracking-tight uppercase italic">{item.title}</h3>
+              <p className="text-slate-400 text-xs sm:text-base leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">{item.desc}</p>
+            
+            <div className="mt-8 flex items-center gap-2 text-[10px] uppercase font-black tracking-widest text-slate-500 group-hover:text-indigo-400 transition-colors">
+              Protocol Documented <ArrowRight className="w-3 h-3" />
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
-  </div>
+  </section>
 );
 
 const FeatureIcon = ({ icon: Icon, color }: { icon: any, color: string }) => (
@@ -889,11 +925,20 @@ const LandingPage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="mt-10 sm:mt-14 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 sm:gap-6 w-full"
+                className="mt-10 sm:mt-14 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 sm:gap-6 w-full lg:w-auto"
               >
-                <Button size="lg" onClick={onGetStarted} className="px-10 sm:px-12 h-14 sm:h-16 text-lg sm:text-xl rounded-2xl shadow-2xl shadow-indigo-600/20 group justify-center w-full sm:w-auto">
-                  Get Started <ArrowRight className="ml-3 h-5 w-5 sm:h-6 sm:w-6 group-hover:translate-x-1 transition-transform" />
-                </Button>
+                <div className="flex flex-col xs:flex-row items-center gap-4 w-full sm:w-auto">
+                  <Button size="lg" onClick={onGetStarted} className="px-10 sm:px-12 h-14 sm:h-16 text-lg sm:text-xl rounded-2xl shadow-2xl shadow-indigo-600/20 group justify-center w-full sm:w-auto">
+                    Get Started <ArrowRight className="ml-3 h-5 w-5 sm:h-6 sm:w-6 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+
+                  <button 
+                    onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="px-8 h-14 text-xs sm:text-sm uppercase tracking-widest font-black text-slate-500 hover:text-white transition-colors flex items-center gap-2 group w-full sm:w-48 justify-center"
+                  >
+                    Learn how <HelpCircle className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                  </button>
+                </div>
                 
                 <div className="flex items-center gap-4 px-5 sm:px-6 h-14 sm:h-16 rounded-2xl border border-white/5 bg-white/5 backdrop-blur-xl w-full sm:w-auto justify-center">
                   <div className="flex -space-x-3">
@@ -990,6 +1035,8 @@ const LandingPage = ({ onGetStarted }: { onGetStarted: () => void }) => {
         </div>
       </section>
 
+      <HowItWorksSection />
+
       {/* Feature Grid */}
       <section className="py-20 sm:py-32 px-4 sm:px-6">
         <div className="mx-auto max-w-7xl">
@@ -1024,14 +1071,14 @@ const LandingPage = ({ onGetStarted }: { onGetStarted: () => void }) => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[800px] h-[400px] bg-indigo-600/10 blur-[100px] sm:blur-[150px] rounded-full" />
         </div>
         
-        <div className="mx-auto max-w-5xl text-center relative z-10 glass-morphism rounded-[2rem] sm:rounded-[3rem] p-8 sm:p-24 border-white/5">
-          <h2 className="text-4xl sm:text-7xl font-bold font-display text-white mb-6 sm:mb-8 leading-tight">Ready to build <br className="hidden sm:block" /> your <span className="text-gradient">Circle</span>?</h2>
-          <p className="text-slate-400 text-base sm:text-xl mb-8 sm:mb-12 max-w-xl mx-auto">Join thousands of members who are already leveraging the power of collective liquid capital.</p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-            <Button size="lg" onClick={onGetStarted} className="px-10 sm:px-14 h-16 sm:h-18 text-lg sm:text-xl rounded-2xl w-full sm:w-auto">
+        <div className="mx-auto max-w-5xl text-center relative z-10 glass-morphism rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-24 border-white/5">
+          <h2 className="text-3xl sm:text-7xl font-bold font-display text-white mb-6 sm:mb-8 leading-tight">Ready to build <br className="hidden sm:block" /> your <span className="text-gradient">Circle</span>?</h2>
+          <p className="text-sm sm:text-xl text-slate-400 mb-8 sm:mb-12 max-w-xl mx-auto px-4">Join thousands of members who are already leveraging the power of collective liquid capital.</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 px-4">
+            <Button size="lg" onClick={onGetStarted} className="px-10 sm:px-14 h-14 sm:h-18 text-base sm:text-xl rounded-2xl w-full sm:w-auto">
               Get Started Now
             </Button>
-            <Button variant="outline" size="lg" className="px-10 sm:px-14 h-16 sm:h-18 text-lg sm:text-xl rounded-2xl w-full sm:w-auto">
+            <Button variant="outline" size="lg" className="px-10 sm:px-14 h-14 sm:h-18 text-base sm:text-xl rounded-2xl w-full sm:w-auto">
               View Marketplace
             </Button>
           </div>
@@ -1401,7 +1448,7 @@ const UserDashboardContent = ({ user }: { user: any }) => {
       case 'agents':
         return <AgentsView />;
       case 'how-it-works':
-        return <HowItWorksView />;
+        return <div className="py-12"><HowItWorksSection /></div>;
       default:
         return (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

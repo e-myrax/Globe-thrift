@@ -40,7 +40,7 @@ export const AuthModal = ({ isOpen, onClose, onOpenWalletModal }: AuthModalProps
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             className="relative w-full max-w-lg z-10"
           >
-            <Card variant="glass" className="p-8 sm:p-12 border-white/10 relative overflow-hidden">
+            <Card variant="glass" className="p-6 sm:p-12 border-white/10 relative overflow-hidden">
               {/* Background Accents */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[100px] -mr-32 -mt-32 rounded-full" />
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-600/5 blur-[100px] -ml-32 -mb-32 rounded-full" />

@@ -43,6 +43,8 @@ const SUPPORTED_NETWORKS = [
   }
 ];
 
+import { StellarService } from '../../services/stellarService';
+
 export const WalletConnectionModal = ({ isOpen, onClose, onConnect }: WalletConnectionModalProps) => {
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
   const { connectAsync, connectors } = useConnect();
@@ -55,8 +57,7 @@ export const WalletConnectionModal = ({ isOpen, onClose, onConnect }: WalletConn
     setIsWalletMissing(false);
     
     if (selectedNetwork === 'stellar-mainnet') {
-      const freighter = (window as any).freighterApi;
-      if (!freighter) {
+      if (!StellarService.isFreighterInstalled()) {
         setIsWalletMissing(true);
         return false;
       }
@@ -77,26 +78,17 @@ export const WalletConnectionModal = ({ isOpen, onClose, onConnect }: WalletConn
     
     try {
       if (selectedNetwork === 'stellar-mainnet') {
-        const freighter = (window as any).freighterApi;
-        if (!freighter) {
-          setIsWalletMissing(true);
-          setIsConnecting(false);
-          return;
-        }
-        
         try {
-          // Request access to freighter
-          const isAllowed = await freighter.isAllowed();
-          if (!isAllowed) {
-            await freighter.setAllowed();
-          }
-          const { address } = await freighter.getUserInfo();
-          if (!address) throw new Error('No account found in Freighter');
-          
+          const address = await StellarService.connect();
+          console.log('Connected to Stellar:', address);
           onConnect?.(selectedNetwork);
           onClose();
         } catch (e: any) {
-          setConnectionError(`Stellar Connection Failed: ${e.message || 'Access denied by user'}`);
+          if (e.message.includes('not found')) {
+            setIsWalletMissing(true);
+          } else {
+            setConnectionError(`Stellar Connection Failed: ${e.message}`);
+          }
         }
       } else {
         // EVM networks
