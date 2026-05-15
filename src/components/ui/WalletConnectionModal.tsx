@@ -45,50 +45,103 @@ const SUPPORTED_NETWORKS = [
 
 export const WalletConnectionModal = ({ isOpen, onClose, onConnect }: WalletConnectionModalProps) => {
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
-  const { connect } = useConnect();
+  const { connectAsync, connectors } = useConnect();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [isWalletMissing, setIsWalletMissing] = useState(false);
+
+  const checkWalletAvailability = () => {
+    setConnectionError(null);
+    setIsWalletMissing(false);
+    
+    if (selectedNetwork === 'stellar-mainnet') {
+      const freighter = (window as any).freighterApi;
+      if (!freighter) {
+        setIsWalletMissing(true);
+        return false;
+      }
+    } else if (selectedNetwork) {
+      // Check for EVM wallet (simple check for window.ethereum)
+      if (!(window as any).ethereum) {
+        setIsWalletMissing(true);
+        return false;
+      }
+    }
+    return true;
+  };
 
   const handleConnect = async () => {
     if (!selectedNetwork) return;
+    setConnectionError(null);
     setIsConnecting(true);
+    
     try {
       if (selectedNetwork === 'stellar-mainnet') {
         const freighter = (window as any).freighterApi;
         if (!freighter) {
-          alert('Freighter extension not found. Please install the Freighter wallet to use Stellar Protocol or select another network.');
+          setIsWalletMissing(true);
+          setIsConnecting(false);
           return;
         }
         
         try {
+          // Request access to freighter
           const isAllowed = await freighter.isAllowed();
           if (!isAllowed) {
             await freighter.setAllowed();
           }
+          const { address } = await freighter.getUserInfo();
+          if (!address) throw new Error('No account found in Freighter');
+          
           onConnect?.(selectedNetwork);
+          onClose();
         } catch (e: any) {
-          throw new Error(`Freighter connection failed: ${e.message || 'Access denied'}`);
+          setConnectionError(`Stellar Connection Failed: ${e.message || 'Access denied by user'}`);
         }
       } else {
         // EVM networks
         try {
-          await connect({ connector: metaMask() });
+          // Find MetaMask or any injected connector
+          const mmConnector = connectors.find(c => c.id === 'metaMaskSDK' || c.id === 'metaMask');
+          const injectedConnector = connectors.find(c => c.type === 'injected');
+          const connector = mmConnector || injectedConnector;
+
+          if (!connector) {
+            setIsWalletMissing(true);
+            setIsConnecting(false);
+            return;
+          }
+
+          await connectAsync({ connector });
           onConnect?.(selectedNetwork);
+          onClose();
         } catch (e: any) {
-          if (e.message?.includes('Connector not found')) {
-            alert('MetaMask extension not found. Please install it or use another network.');
+          if (e.message?.includes('Connector not found') || e.message?.includes('Provider not found')) {
+            setIsWalletMissing(true);
           } else {
-            throw e;
+            setConnectionError(`EVM Connection Failed: ${e.message || 'Failed to connect. Ensure MetaMask is unlocked.'}`);
           }
         }
       }
-      onClose();
     } catch (e: any) {
       console.error('Wallet connection error:', e);
-      alert(e.message || 'Failed to connect to wallet. Please try again.');
+      setConnectionError(e.message || 'Connection failed');
     } finally {
       setIsConnecting(false);
     }
   };
+
+  const resetState = () => {
+    setSelectedNetwork(null);
+    setConnectionError(null);
+    setIsWalletMissing(false);
+  };
+
+  React.useEffect(() => {
+    if (selectedNetwork) {
+      checkWalletAvailability();
+    }
+  }, [selectedNetwork]);
 
   return (
     <AnimatePresence>
@@ -160,18 +213,74 @@ export const WalletConnectionModal = ({ isOpen, onClose, onConnect }: WalletConn
               </div>
 
               <div className="space-y-4 relative">
-                <Button 
-                  size="lg" 
-                  className="w-full h-16 rounded-2xl shadow-2xl shadow-indigo-600/20 group/btn"
-                  disabled={!selectedNetwork}
-                  isLoading={isConnecting}
-                  onClick={handleConnect}
-                >
-                  Initiate Secure Connection <ArrowRight className="ml-2 w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
-                </Button>
+                <AnimatePresence mode="wait">
+                  {isWalletMissing ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center"
+                    >
+                      <h4 className="text-amber-500 font-bold mb-2">Extension Required</h4>
+                      <p className="text-xs text-slate-300 mb-4 leading-relaxed">
+                        To use {SUPPORTED_NETWORKS.find(n => n.id === selectedNetwork)?.name}, you need the {selectedNetwork === 'stellar-mainnet' ? 'Freighter' : 'MetaMask'} browser extension.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="flex-1 rounded-xl h-10 text-[11px]"
+                          onClick={() => window.open(selectedNetwork === 'stellar-mainnet' ? 'https://www.freighter.app/' : 'https://metamask.io/download/', '_blank')}
+                        >
+                          Install Extension
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 rounded-xl h-10 text-[11px]"
+                          onClick={() => setIsWalletMissing(false)}
+                        >
+                          Try Again
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ) : connectionError ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="p-5 rounded-2xl bg-red-500/10 border border-red-500/20 text-center"
+                    >
+                      <h4 className="text-red-500 font-bold mb-2">Connection Blocked</h4>
+                      <p className="text-xs text-slate-300 mb-4 leading-relaxed">
+                        {connectionError}
+                      </p>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="w-full rounded-xl h-10 text-[11px]"
+                        onClick={handleConnect}
+                        isLoading={isConnecting}
+                      >
+                        Retry Protocol Handshake
+                      </Button>
+                    </motion.div>
+                  ) : (
+                    <Button 
+                      size="lg" 
+                      className="w-full h-16 rounded-2xl shadow-2xl shadow-indigo-600/20 group/btn"
+                      disabled={!selectedNetwork}
+                      isLoading={isConnecting}
+                      onClick={handleConnect}
+                    >
+                      Initiate Secure Connection <ArrowRight className="ml-2 w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                    </Button>
+                  )}
+                </AnimatePresence>
+                
                 <div className="flex items-center gap-3 justify-center">
                   <Shield className="w-3.5 h-3.5 text-slate-600" />
-                  <p className="text-[9px] text-slate-600 uppercase font-black tracking-widest text-center">AES-256 Encrypted Protocol Gate</p>
+                  <p className="text-[9px] text-slate-600 uppercase font-black tracking-widest text-center italic">Globe Thrift Secured Gateway</p>
                 </div>
               </div>
             </Card>

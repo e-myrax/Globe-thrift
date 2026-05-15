@@ -45,6 +45,7 @@ import { trustlessWorkService } from './services/trustlessWorkService';
 import { WalletValidationGate } from './components/WalletValidationGate';
 import { WalletConnectionModal } from './components/ui/WalletConnectionModal';
 import { OnboardingModal } from './components/ui/OnboardingModal';
+import { AuthModal } from './components/ui/AuthModal';
 
 import { Logo } from './components/Logo';
 
@@ -176,10 +177,10 @@ const RotationVisual = () => (
 type View = 'overview' | 'marketplace' | 'wallet' | 'business' | 'agents' | 'how-it-works';
 
 const StatsGrid = ({ trustScore }: { trustScore: number }) => (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-4">
     <Card variant="solid" className="p-5 bg-white/5 border-white/5 backdrop-blur-md">
       <p className="label-micro mb-2">Total Contribution</p>
-      <h3 className="text-2xl font-bold text-white font-display tracking-tight">{formatCurrency(12500)}</h3>
+      <h3 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">{formatCurrency(12500)}</h3>
       <div className="flex items-center gap-1.5 mt-2">
         <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
         <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">+12% this month</span>
@@ -187,12 +188,12 @@ const StatsGrid = ({ trustScore }: { trustScore: number }) => (
     </Card>
     <Card variant="solid" className="p-5 bg-white/5 border-white/5 backdrop-blur-md">
       <p className="label-micro mb-2">Active Circles</p>
-      <h3 className="text-2xl font-bold text-white font-display tracking-tight">3</h3>
+      <h3 className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">3</h3>
       <p className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-wider">Global P2P Rotations</p>
     </Card>
-    <Card variant="solid" className="p-5 bg-white/5 border-white/5 backdrop-blur-md">
+    <Card variant="solid" className="p-5 bg-white/5 border-white/5 backdrop-blur-md xs:col-span-2 md:col-span-1">
       <p className="label-micro mb-2">Social Trust Score</p>
-      <h3 className="text-2xl font-bold text-indigo-400 font-display tracking-tight">{trustScore}</h3>
+      <h3 className="text-xl sm:text-2xl font-bold text-indigo-400 font-display tracking-tight">{trustScore}</h3>
       <p className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-wider">Verifiable Reputation</p>
     </Card>
   </div>
@@ -555,7 +556,7 @@ const MarketplaceView = ({ circles, onJoin }: { circles: any[], onJoin: (circleI
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCircles.map(circle => (
           <Card key={circle.id} variant="glass" hoverable className="p-8 relative group overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -844,7 +845,7 @@ const FeatureIcon = ({ icon: Icon, color }: { icon: any, color: string }) => (
   </div>
 );
 
-const LandingPage = () => {
+const LandingPage = ({ onGetStarted }: { onGetStarted: () => void }) => {
   return (
     <div className="relative isolate min-h-screen pb-20">
       <BackgroundBlobs />
@@ -890,7 +891,7 @@ const LandingPage = () => {
                 transition={{ delay: 0.4 }}
                 className="mt-10 sm:mt-14 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 sm:gap-6 w-full"
               >
-                <Button size="lg" onClick={() => signInWithGoogle()} className="px-10 sm:px-12 h-14 sm:h-16 text-lg sm:text-xl rounded-2xl shadow-2xl shadow-indigo-600/20 group justify-center w-full sm:w-auto">
+                <Button size="lg" onClick={onGetStarted} className="px-10 sm:px-12 h-14 sm:h-16 text-lg sm:text-xl rounded-2xl shadow-2xl shadow-indigo-600/20 group justify-center w-full sm:w-auto">
                   Get Started <ArrowRight className="ml-3 h-5 w-5 sm:h-6 sm:w-6 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 
@@ -1027,7 +1028,7 @@ const LandingPage = () => {
           <h2 className="text-4xl sm:text-7xl font-bold font-display text-white mb-6 sm:mb-8 leading-tight">Ready to build <br className="hidden sm:block" /> your <span className="text-gradient">Circle</span>?</h2>
           <p className="text-slate-400 text-base sm:text-xl mb-8 sm:mb-12 max-w-xl mx-auto">Join thousands of members who are already leveraging the power of collective liquid capital.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-            <Button size="lg" onClick={() => signInWithGoogle()} className="px-10 sm:px-14 h-16 sm:h-18 text-lg sm:text-xl rounded-2xl w-full sm:w-auto">
+            <Button size="lg" onClick={onGetStarted} className="px-10 sm:px-14 h-16 sm:h-18 text-lg sm:text-xl rounded-2xl w-full sm:w-auto">
               Get Started Now
             </Button>
             <Button variant="outline" size="lg" className="px-10 sm:px-14 h-16 sm:h-18 text-lg sm:text-xl rounded-2xl w-full sm:w-auto">
@@ -1170,6 +1171,7 @@ const UserDashboardContent = ({ user }: { user: any }) => {
   const [activeView, setActiveView] = useState<View>('overview');
   const [isCircleModalOpen, setIsCircleModalOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(null);
   const [editingCircle, setEditingCircle] = useState<any>(null);
@@ -1556,31 +1558,37 @@ const UserDashboardContent = ({ user }: { user: any }) => {
         onClose={() => setIsWalletModalOpen(false)}
         onConnect={(networkId) => setSelectedNetworkId(networkId)}
       />
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onOpenWalletModal={() => setIsWalletModalOpen(true)}
+      />
       <OnboardingModal
         isOpen={isOnboardingOpen}
         onClose={() => setIsOnboardingOpen(false)}
         onComplete={handleOnboardingComplete}
       />
       
-      <header className="flex items-center justify-between glass p-3 sm:p-4 mb-6 sm:mb-8 rounded-2xl z-20 sticky top-4 sm:top-6 bg-[#050508]/40 backdrop-blur-2xl border-white/5 shadow-2xl">
-        <div className="flex items-center gap-3 cursor-pointer shrink-0" onClick={() => setActiveView('overview')}>
+      <header className="flex items-center justify-between glass p-2 sm:p-4 mb-6 sm:mb-8 rounded-2xl z-20 sticky top-4 sm:top-6 bg-[#050508]/40 backdrop-blur-2xl border-white/5 shadow-2xl">
+        <div className="flex items-center gap-1 sm:gap-3 cursor-pointer shrink-0" onClick={() => setActiveView('overview')}>
           <Logo />
         </div>
 
-        <nav className="flex gap-3 sm:gap-6 lg:gap-8 items-center px-4 overflow-x-auto no-scrollbar scroll-smooth">
+        <nav className="flex gap-1 sm:gap-6 lg:gap-8 items-center px-1 sm:px-4 overflow-x-auto no-scrollbar scroll-smooth">
           {[
             { id: 'overview', label: 'Home' },
             { id: 'marketplace', label: 'Market' },
             { id: 'wallet', label: 'Wallet' },
-            { id: 'business', label: 'B2B' },
-            { id: 'agents', label: 'Devs' }
+            { id: 'business', label: 'B2B', desktopOnly: true },
+            { id: 'agents', label: 'Devs', desktopOnly: true }
           ].map((item) => (
             <button 
               key={item.id}
               onClick={() => setActiveView(item.id as View)}
               className={cn(
                 "text-[9px] sm:text-xs font-bold uppercase tracking-widest transition-all relative py-2 whitespace-nowrap",
-                activeView === item.id ? "text-white" : "text-slate-500 hover:text-white"
+                activeView === item.id ? "text-white" : "text-slate-500 hover:text-white",
+                item.desktopOnly && "hidden sm:block"
               )}
             >
               {item.label}
@@ -1665,6 +1673,8 @@ const UserDashboardContent = ({ user }: { user: any }) => {
 
 export default function App() {
   const [user, loading] = useAuthState(auth);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   if (loading) {
     return (
@@ -1692,7 +1702,7 @@ export default function App() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <LandingPage />
+            <LandingPage onGetStarted={() => setIsAuthModalOpen(true)} />
           </motion.div>
         ) : (
           <motion.div
@@ -1705,6 +1715,18 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onOpenWalletModal={() => setIsWalletModalOpen(true)}
+      />
+      
+      <WalletConnectionModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+        onConnect={() => {}} 
+      />
     </div>
   );
 }

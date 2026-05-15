@@ -38,8 +38,8 @@ export const Logo: React.FC<LogoProps & { children?: React.ReactNode, iconClassN
       </div>
       {showText && (
         <div className="text-left">
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white leading-none uppercase font-display">GLOBE THRIFT</h1>
-          <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.3em] text-indigo-400 mt-1 font-bold">Thrift Protocol v2.0</p>
+          <h1 className="text-sm sm:text-lg md:text-xl font-bold tracking-tight text-white leading-none uppercase font-display">GLOBE THRIFT</h1>
+          <p className="text-[7px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-indigo-400 mt-0.5 sm:mt-1 font-bold">Thrift Protocol v2.0</p>
           {children}
         </div>
       )}
