@@ -1,11 +1,11 @@
 import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
 import { useWalletContext } from "../providers/WalletProvider";
+import { auth } from "../lib/firebase";
+import { signInAnonymously } from "firebase/auth";
 
 /**
  * Custom hook that provides wallet connection and disconnection functionality
- * Integrates with the Stellar Wallet Kit and manages wallet state through context
- * 
- * Updated for StellarWalletsKit v2.x (Static API)
+ * Integrates with the Stellar Wallet Kit (v2.x static API) and manages wallet state through context
  */
 export const useStellarWallet = () => {
   // Get wallet management functions from the context
@@ -13,18 +13,21 @@ export const useStellarWallet = () => {
 
   /**
    * Connect to a Stellar wallet using the Wallet Kit
-   * Opens a modal for wallet selection and handles the connection process
-   * Automatically sets wallet information in the context upon successful connection
+   * Opens the auth modal for wallet selection and handles the connection process
    */
   const connectWallet = async () => {
     try {
-      // In v2.x, authModal handles both selection and getting the address
+      // 1. Trigger the Stellar Wallet Kit modal
       const { address } = await StellarWalletsKit.authModal();
       
-      // We can try to get the selected module name
-      const walletName = "Stellar Wallet"; // Default name
+      // 2. Ensure we have a Firebase session (anonymous)
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+      }
       
-      // Store wallet information in the context and localStorage
+      const walletName = "Stellar Wallet"; 
+
+      // 3. Store wallet information in the context and localStorage
       setWalletInfo(address, walletName);
     } catch (error) {
       console.error("Error during Stellar wallet connection:", error);
@@ -34,16 +37,15 @@ export const useStellarWallet = () => {
 
   /**
    * Disconnect from the current wallet
-   * Clears wallet information from the context and localStorage
-   * Disconnects the wallet from the Stellar Wallet Kit
    */
   const disconnectWallet = async () => {
     try {
       await StellarWalletsKit.disconnect();
     } catch (e) {
-      console.warn("Kit disconnect failed, clearing state anyway", e);
+      console.warn("Disconnect failed", e);
     }
     clearWalletInfo();
+    // Optional: await auth.signOut(); // Usually better to keep session unless they explicitly logout
   };
 
   /**

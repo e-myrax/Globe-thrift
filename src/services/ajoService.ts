@@ -129,7 +129,7 @@ export const ajoService = {
     }
   },
 
-  async syncProfile(user: any) {
+  async syncProfile(user: any, walletAddress?: string) {
     if (!user) return;
     const path = `users/${user.uid}`;
     try {
@@ -140,13 +140,13 @@ export const ajoService = {
       if (!userSnap.exists()) {
         const profile: UserProfile = {
           uid: user.uid,
-          email: user.email,
-          displayName: user.displayName || '',
-          photoURL: user.photoURL || '',
+          email: user.email || '',
+          displayName: user.displayName || 'Stellar Member',
+          photoURL: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
           trustScore: 100,
           role: 'member',
           createdAt: serverTimestamp(),
-          walletAddress: '',
+          walletAddress: walletAddress || '',
         };
         await setDoc(userRef, profile);
       } else {
@@ -157,7 +157,9 @@ export const ajoService = {
           updates.trustScore = 100;
         }
         
-        if (data.walletAddress === undefined) {
+        if (walletAddress && data.walletAddress !== walletAddress) {
+          updates.walletAddress = walletAddress;
+        } else if (data.walletAddress === undefined) {
           updates.walletAddress = '';
         }
 

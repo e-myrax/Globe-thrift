@@ -45,7 +45,6 @@ import { cn, formatAddress, formatCurrency } from './lib/utils';
 import { ajoService } from './services/ajoService';
 import { trustlessWorkService } from './services/trustlessWorkService';
 import { WalletValidationGate } from './components/WalletValidationGate';
-import { WalletConnectionModal } from './components/ui/WalletConnectionModal';
 import { OnboardingModal } from './components/ui/OnboardingModal';
 import { AuthModal } from './components/ui/AuthModal';
 
@@ -731,7 +730,7 @@ const WalletView = ({ profile }: { profile: any }) => {
           </div>
         </Card>
 
-        <WalletValidationGate address={profile?.walletAddress} />
+        <WalletValidationGate address={walletAddress || profile?.walletAddress} />
       </div>
 
       <div className="lg:col-span-8">
@@ -1240,10 +1239,7 @@ const UserDashboard = (props: { user: any }) => {
 const UserDashboardContent = ({ user }: { user: any }) => {
   const [activeView, setActiveView] = useState<View>('overview');
   const [isCircleModalOpen, setIsCircleModalOpen] = useState(false);
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-  const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(null);
   const [editingCircle, setEditingCircle] = useState<any>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const { address, isConnected: isEvmConnected, isConnecting: isEvmConnecting } = useAccount();
@@ -1312,9 +1308,9 @@ const UserDashboardContent = ({ user }: { user: any }) => {
 
   useEffect(() => {
     if (user) {
-      ajoService.syncProfile(user);
+      ajoService.syncProfile(user, stellarAddress || undefined);
     }
-  }, [user?.uid]);
+  }, [user?.uid, stellarAddress]);
 
   useEffect(() => {
     if (user) {
@@ -1638,16 +1634,6 @@ const UserDashboardContent = ({ user }: { user: any }) => {
         onClose={() => { setIsCircleModalOpen(false); setEditingCircle(null); }} 
         circle={editingCircle}
       />
-      <WalletConnectionModal
-        isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
-        onConnect={(networkId) => setSelectedNetworkId(networkId)}
-      />
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onOpenWalletModal={() => setIsWalletModalOpen(true)}
-      />
       <OnboardingModal
         isOpen={isOnboardingOpen}
         onClose={() => setIsOnboardingOpen(false)}
@@ -1759,7 +1745,6 @@ const UserDashboardContent = ({ user }: { user: any }) => {
 export default function App() {
   const [user, loading] = useAuthState(auth);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const { handleConnect: handleStellarConnect } = useStellarWallet();
 
   if (loading) {
@@ -1805,13 +1790,6 @@ export default function App() {
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
-        onOpenWalletModal={() => setIsWalletModalOpen(true)}
-      />
-      
-      <WalletConnectionModal
-        isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
-        onConnect={() => {}} 
       />
     </div>
   );

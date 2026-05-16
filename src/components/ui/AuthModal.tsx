@@ -19,10 +19,9 @@ import { useStellarWallet } from '../../hooks/useStellarWallet';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: boolean | any;
-  onOpenWalletModal: () => void;
 }
 
-export const AuthModal = ({ isOpen, onClose, onOpenWalletModal }: AuthModalProps) => {
+export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
   const { handleConnect } = useStellarWallet();
 
   const handleStellarConnect = async () => {
