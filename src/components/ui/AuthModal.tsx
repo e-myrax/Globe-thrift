@@ -14,6 +14,7 @@ import {
 import { Button } from './Button';
 import { Card } from './Card';
 import { signInWithGoogle } from '../../lib/firebase';
+import { useStellarWallet } from '../../hooks/useStellarWallet';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -22,6 +23,13 @@ interface AuthModalProps {
 }
 
 export const AuthModal = ({ isOpen, onClose, onOpenWalletModal }: AuthModalProps) => {
+  const { handleConnect } = useStellarWallet();
+
+  const handleStellarConnect = async () => {
+    await handleConnect();
+    onClose();
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -81,23 +89,43 @@ export const AuthModal = ({ isOpen, onClose, onOpenWalletModal }: AuthModalProps
                   <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-indigo-400 transition-colors" />
                 </button>
 
-                {/* Web3 Wallet */}
+                {/* Stellar Wallet */}
                 <button
-                  onClick={() => {
-                    onOpenWalletModal();
-                    onClose();
-                  }}
+                  onClick={handleStellarConnect}
                   className="w-full group flex items-center gap-4 p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 hover:border-indigo-400/40 hover:bg-indigo-500/20 transition-all text-left"
                 >
                   <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
                     <Wallet className="w-6 h-6" />
                   </div>
                   <div className="flex-grow">
-                    <p className="text-white font-bold text-sm">Connect Web3 Wallet</p>
-                    <p className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold mt-0.5">Stellar & EVM Protocol</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-white font-bold text-sm">Connect Stellar Wallet</p>
+                      <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter ring-1 ring-emerald-500/30">Native Support</span>
+                    </div>
+                    <p className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold mt-0.5">Freighter & Albedo Modules</p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-indigo-600 group-hover:text-indigo-400 transition-colors" />
                 </button>
+
+                {/* EVM Wallet (Coming Soon) */}
+                <div className="relative group opacity-50 grayscale">
+                  <button
+                    disabled
+                    className="w-full flex items-center gap-4 p-5 rounded-2xl bg-white/5 border border-white/5 cursor-not-allowed transition-all text-left"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center shrink-0 text-slate-500">
+                      < Globe className="w-6 h-6" />
+                    </div>
+                    <div className="flex-grow">
+                      <div className="flex items-center gap-2">
+                        <p className="text-white font-bold text-sm">Connect EVM Wallet</p>
+                        <span className="text-[8px] bg-slate-500/20 text-slate-400 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter ring-1 ring-slate-500/30">Coming Soon</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">Ethereum & L2 Protocols</p>
+                    </div>
+                    <Lock className="w-4 h-4 text-slate-700" />
+                  </button>
+                </div>
 
                 <div className="pt-4 flex items-center gap-3 justify-center">
                   <Lock className="w-3.5 h-3.5 text-slate-600" />

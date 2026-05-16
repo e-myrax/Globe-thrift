@@ -36,6 +36,8 @@ import { auth, signInWithGoogle } from './lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { metaMask } from 'wagmi/connectors';
+import { useWalletContext } from './providers/WalletProvider';
+import { useStellarWallet } from './hooks/useStellarWallet';
 import { Button } from './components/ui/Button';
 import { Card, CardTitle, CardDescription } from './components/ui/Card';
 import { CreateCircleModal } from './components/ui/CreateCircleModal';
@@ -1223,8 +1225,23 @@ const UserDashboardContent = ({ user }: { user: any }) => {
   const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(null);
   const [editingCircle, setEditingCircle] = useState<any>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const { address, isConnected, isConnecting } = useAccount();
-  const { disconnect } = useDisconnect();
+  const { address, isConnected: isEvmConnected, isConnecting: isEvmConnecting } = useAccount();
+  const { disconnect: disconnectEvm } = useDisconnect();
+  const { walletAddress: stellarAddress, walletName: stellarWalletName } = useWalletContext();
+  const { handleDisconnect: disconnectStellar } = useStellarWallet();
+  
+  const isConnected = isEvmConnected || !!stellarAddress;
+  const isConnecting = isEvmConnecting;
+  const addressToShow = stellarAddress || address;
+
+  const handleUnifiedDisconnect = async () => {
+    if (stellarAddress) {
+      await disconnectStellar();
+    }
+    if (isEvmConnected) {
+      disconnectEvm();
+    }
+  };
   
   const [circles, setCircles] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -1455,7 +1472,7 @@ const UserDashboardContent = ({ user }: { user: any }) => {
             <div className="lg:col-span-8 flex flex-col gap-8">
               {isConnected && (
                 <WalletValidationGate 
-                  address={address} 
+                  address={addressToShow} 
                   onValidated={handleWalletValidated} 
                 />
               )}
@@ -1672,9 +1689,9 @@ const UserDashboardContent = ({ user }: { user: any }) => {
             </span>
           </div>
           {isConnected ? (
-            <Button variant="ghost" size="sm" onClick={() => disconnect()} className="rounded-xl bg-white/5 hover:bg-white/10 flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-2 sm:px-4">
-              <span className="hidden xs:inline">{formatAddress(address)}</span>
-              <span className="xs:hidden">{address?.slice(0,4)}...</span>
+            <Button variant="ghost" size="sm" onClick={handleUnifiedDisconnect} className="rounded-xl bg-white/5 hover:bg-white/10 flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-2 sm:px-4">
+              <span className="hidden xs:inline">{formatAddress(addressToShow)}</span>
+              <span className="xs:hidden">{addressToShow?.slice(0,4)}...</span>
               <LogOut className="ml-1 sm:ml-2 w-3 h-3" />
             </Button>
           ) : (
