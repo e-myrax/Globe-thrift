@@ -13,6 +13,17 @@ Our platform not only provides 0% interest credit and structured savings but is 
 
 ---
 
+## 🌐 Live Demo & Authentication
+
+Experience the infrastructure live in your browser:
+
+👉 **[Launch the Live Demo App](https://globethrift.vercel.app/)** 
+
+> 💡 **Important Authentication Guide:**  
+> To ensure seamless setup and instant synchronization with your profile security tiers, **please use Google Authentication** when signing up or logging into the dashboard for the first time. This guarantees smooth integration with our identity verification flow.
+
+---
+
 ## 💎 User Value Flow
 
 The platform is designed to be a **"Moving Bank" in your pocket**, inspired by the legendary efficiency of *Alajọ Ṣomolu*.
@@ -39,7 +50,7 @@ The platform is designed to be a **"Moving Bank" in your pocket**, inspired by t
 
 ---
 
-## 🚀 [COMING SOON] The Collab Community Flow
+## 🚀 [COMING Soon] The Collab Community Flow
 
 We are expanding beyond simple rotation into a decentralized investment ecosystem for community amenities.
 
