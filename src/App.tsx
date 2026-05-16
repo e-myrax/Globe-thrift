@@ -647,6 +647,8 @@ const MarketplaceView = ({ circles, onJoin }: { circles: any[], onJoin: (circleI
 const WalletView = ({ profile }: { profile: any }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [newWallet, setNewWallet] = useState(profile?.walletAddress || '');
+  const { walletAddress, walletName } = useWalletContext();
+  const { handleConnect, handleDisconnect } = useStellarWallet();
 
   const handleUpdateWallet = async () => {
     if (!profile?.uid) return;
@@ -672,29 +674,48 @@ const WalletView = ({ profile }: { profile: any }) => {
         <Card variant="solid" className="p-8 bg-white/5 border-white/10">
           <h4 className="label-micro mb-6">Linked Protocol Wallet</h4>
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-slate-900/50 border border-white/5">
-              <label className="text-[9px] uppercase font-bold text-slate-500 block mb-2">Stellar / Trustless Work Address</label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={newWallet}
-                  onChange={(e) => setNewWallet(e.target.value)}
-                  placeholder="G... or 0x..."
-                  className="flex-grow bg-white/5 border border-white/5 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500/50"
-                />
-                <Button 
-                  size="sm" 
-                  onClick={handleUpdateWallet} 
-                  isLoading={isUpdating}
-                  className="px-4"
-                >
-                  Save
-                </Button>
+            {/* Native Stellar Connection */}
+            <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 mb-2">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <p className="text-xs font-bold text-white">Stellar Wallet</p>
+                </div>
+                {walletAddress && (
+                  <span className="text-[7px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tight ring-1 ring-emerald-500/30">Connected</span>
+                )}
               </div>
-              <p className="text-[9px] text-slate-500 mt-2 italic">* This address is used for all on-chain escrow interactions.</p>
+              
+              {walletAddress ? (
+                <div className="space-y-3">
+                  <div className="p-2.5 rounded-lg bg-black/40 border border-white/5">
+                    <p className="text-[8px] text-slate-500 uppercase font-black mb-1">Active Address ({walletName})</p>
+                    <p className="text-[10px] font-mono text-indigo-300 break-all">{walletAddress}</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleDisconnect}
+                    className="w-full h-8 text-[10px] uppercase font-bold tracking-widest text-slate-500 hover:text-white"
+                  >
+                    Disconnect
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleConnect}
+                  className="w-full h-10 text-[10px] uppercase font-bold tracking-widest rounded-lg group"
+                >
+                  Connect Stellar <ChevronRight className="w-3 h-3 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                </Button>
+              )}
             </div>
-            
-            <div className="flex justify-between items-center p-4 rounded-xl bg-slate-900/50 border border-white/5">
+
+            <div className="flex justify-between items-center p-4 rounded-xl bg-slate-900/50 border border-white/5 opacity-50">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
                   <Globe className="w-4 h-4" />
@@ -1228,7 +1249,7 @@ const UserDashboardContent = ({ user }: { user: any }) => {
   const { address, isConnected: isEvmConnected, isConnecting: isEvmConnecting } = useAccount();
   const { disconnect: disconnectEvm } = useDisconnect();
   const { walletAddress: stellarAddress, walletName: stellarWalletName } = useWalletContext();
-  const { handleDisconnect: disconnectStellar } = useStellarWallet();
+  const { handleConnect: handleStellarConnect, handleDisconnect: disconnectStellar } = useStellarWallet();
   
   const isConnected = isEvmConnected || !!stellarAddress;
   const isConnecting = isEvmConnecting;
@@ -1695,7 +1716,7 @@ const UserDashboardContent = ({ user }: { user: any }) => {
               <LogOut className="ml-1 sm:ml-2 w-3 h-3" />
             </Button>
           ) : (
-            <Button variant="primary" size="sm" onClick={() => setIsWalletModalOpen(true)} className="rounded-xl flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-3 sm:px-4">
+            <Button variant="primary" size="sm" onClick={handleStellarConnect} className="rounded-xl flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-3 sm:px-4">
               Connect
             </Button>
           )}
@@ -1739,6 +1760,7 @@ export default function App() {
   const [user, loading] = useAuthState(auth);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const { handleConnect: handleStellarConnect } = useStellarWallet();
 
   if (loading) {
     return (
@@ -1766,7 +1788,7 @@ export default function App() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <LandingPage onGetStarted={() => setIsAuthModalOpen(true)} />
+            <LandingPage onGetStarted={handleStellarConnect} />
           </motion.div>
         ) : (
           <motion.div
