@@ -1,16 +1,10 @@
-import {
-  StellarWalletsKit,
-  Networks,
-} from "@creit.tech/stellar-wallets-kit";
+import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
+import { Networks } from "@creit.tech/stellar-wallets-kit";
 import { AlbedoModule } from "@creit.tech/stellar-wallets-kit/modules/albedo";
 import { FreighterModule, FREIGHTER_ID } from "@creit.tech/stellar-wallets-kit/modules/freighter";
 
 /**
  * Main configuration for Stellar Wallet Kit
- * This kit supports multiple wallet types including Freighter and Albedo
- * Configure for TESTNET during development and MAINNET for production
- * 
- * Note: In v2.x, StellarWalletsKit uses a static API.
  */
 export const STELLAR_NETWORK = Networks.TESTNET;
 
@@ -32,7 +26,6 @@ interface signTransactionProps {
 
 /**
  * Sign a Stellar transaction using the connected wallet
- * This function handles the signing process and returns the signed transaction
  */
 export const signTransaction = async ({
   unsignedTransaction,

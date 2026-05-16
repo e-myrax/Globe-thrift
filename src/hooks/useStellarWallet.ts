@@ -1,4 +1,4 @@
-import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
+import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
 import { useWalletContext } from "../providers/WalletProvider";
 import { auth } from "../lib/firebase";
 import { signInAnonymously } from "firebase/auth";
@@ -70,10 +70,31 @@ export const useStellarWallet = () => {
     }
   };
 
+  /**
+   * Check if there's an existing session in the kit
+   */
+  const refreshSession = async () => {
+    try {
+      const { address } = await StellarWalletsKit.getAddress();
+      if (address) {
+        setWalletInfo(address, "Stellar Wallet");
+        
+        // Also ensure Firebase auth
+        if (!auth.currentUser) {
+          await signInAnonymously(auth);
+        }
+      }
+    } catch (e) {
+      // Quietly fail if no address is found
+      console.log("No previous Stellar session found.");
+    }
+  };
+
   return {
     connectWallet,
     disconnectWallet,
     handleConnect,
     handleDisconnect,
+    refreshSession,
   };
 };

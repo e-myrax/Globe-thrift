@@ -5,10 +5,11 @@ import {
   useEffect,
   ReactNode,
 } from "react";
+import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
+import "../config/wallet-kit"; // Ensure initialization
 
 /**
  * Type definition for the wallet context
- * Contains wallet address, name, and functions to manage wallet state
  */
 type WalletContextType = {
   walletAddress: string | null;
@@ -24,8 +25,6 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 /**
  * Wallet Provider component that wraps the application
- * Manages wallet state and provides wallet information to child components
- * Automatically loads saved wallet information from localStorage on initialization
  */
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -33,16 +32,35 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   /**
-   * Load saved wallet information from localStorage when the component mounts
-   * This ensures the wallet state persists across browser sessions
+   * Load saved wallet information from kit or localStorage when the component mounts
    */
   useEffect(() => {
-    const storedAddress = localStorage.getItem("stellar_walletAddress");
-    const storedName = localStorage.getItem("stellar_walletName");
+    const initWallet = async () => {
+      try {
+        // Try to get from kit first (v2 persistence)
+        const { address } = await StellarWalletsKit.getAddress();
+        if (address) {
+          setWalletAddress(address);
+          setWalletName("Stellar Wallet");
+        } else {
+          // Fallback to localStorage
+          const storedAddress = localStorage.getItem("stellar_walletAddress");
+          const storedName = localStorage.getItem("stellar_walletName");
+          if (storedAddress) setWalletAddress(storedAddress);
+          if (storedName) setWalletName(storedName);
+        }
+      } catch (e) {
+        // Fallback to localStorage
+        const storedAddress = localStorage.getItem("stellar_walletAddress");
+        const storedName = localStorage.getItem("stellar_walletName");
+        if (storedAddress) setWalletAddress(storedAddress);
+        if (storedName) setWalletName(storedName);
+      } finally {
+        setIsInitialized(true);
+      }
+    };
 
-    if (storedAddress) setWalletAddress(storedAddress);
-    if (storedName) setWalletName(storedName);
-    setIsInitialized(true);
+    initWallet();
   }, []);
 
   /**
