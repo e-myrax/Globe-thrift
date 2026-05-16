@@ -1702,7 +1702,15 @@ const UserDashboardContent = ({ user }: { user: any }) => {
               <LogOut className="ml-1 sm:ml-2 w-3 h-3" />
             </Button>
           ) : (
-            <Button variant="primary" size="sm" onClick={handleStellarConnect} className="rounded-xl flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-3 sm:px-4">
+            <Button 
+              variant="primary" 
+              size="sm" 
+              onClick={async () => {
+                const success = await handleStellarConnect();
+                if (success) setActiveView('overview');
+              }} 
+              className="rounded-xl flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-3 sm:px-4"
+            >
               Connect
             </Button>
           )}

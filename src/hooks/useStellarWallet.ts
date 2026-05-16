@@ -29,9 +29,10 @@ export const useStellarWallet = () => {
 
       // 3. Store wallet information in the context and localStorage
       setWalletInfo(address, walletName);
+      return true;
     } catch (error) {
       console.error("Error during Stellar wallet connection:", error);
-      throw error;
+      return false;
     }
   };
 
@@ -53,9 +54,10 @@ export const useStellarWallet = () => {
    */
   const handleConnect = async () => {
     try {
-      await connectWallet();
+      return await connectWallet();
     } catch (error) {
       console.error("Error connecting wallet:", error);
+      return false;
     }
   };
 
