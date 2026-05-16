@@ -36,8 +36,6 @@ import { auth, signInWithGoogle } from './lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { metaMask } from 'wagmi/connectors';
-import { useWalletContext } from './providers/WalletProvider';
-import { useStellarWallet } from './hooks/useStellarWallet';
 import { Button } from './components/ui/Button';
 import { Card, CardTitle, CardDescription } from './components/ui/Card';
 import { CreateCircleModal } from './components/ui/CreateCircleModal';
@@ -45,9 +43,9 @@ import { cn, formatAddress, formatCurrency } from './lib/utils';
 import { ajoService } from './services/ajoService';
 import { trustlessWorkService } from './services/trustlessWorkService';
 import { WalletValidationGate } from './components/WalletValidationGate';
+import { WalletConnectionModal } from './components/ui/WalletConnectionModal';
 import { OnboardingModal } from './components/ui/OnboardingModal';
 import { AuthModal } from './components/ui/AuthModal';
-import { Toaster } from 'sonner';
 
 import { Logo } from './components/Logo';
 
@@ -647,8 +645,6 @@ const MarketplaceView = ({ circles, onJoin }: { circles: any[], onJoin: (circleI
 const WalletView = ({ profile }: { profile: any }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [newWallet, setNewWallet] = useState(profile?.walletAddress || '');
-  const { walletAddress, walletName } = useWalletContext();
-  const { handleConnect, handleDisconnect } = useStellarWallet();
 
   const handleUpdateWallet = async () => {
     if (!profile?.uid) return;
@@ -674,48 +670,29 @@ const WalletView = ({ profile }: { profile: any }) => {
         <Card variant="solid" className="p-8 bg-white/5 border-white/10">
           <h4 className="label-micro mb-6">Linked Protocol Wallet</h4>
           <div className="space-y-4">
-            {/* Native Stellar Connection */}
-            <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 mb-2">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                    <Wallet className="w-4 h-4" />
-                  </div>
-                  <p className="text-xs font-bold text-white">Stellar Wallet</p>
-                </div>
-                {walletAddress && (
-                  <span className="text-[7px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tight ring-1 ring-emerald-500/30">Connected</span>
-                )}
-              </div>
-              
-              {walletAddress ? (
-                <div className="space-y-3">
-                  <div className="p-2.5 rounded-lg bg-black/40 border border-white/5">
-                    <p className="text-[8px] text-slate-500 uppercase font-black mb-1">Active Address ({walletName})</p>
-                    <p className="text-[10px] font-mono text-indigo-300 break-all">{walletAddress}</p>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleDisconnect}
-                    className="w-full h-8 text-[10px] uppercase font-bold tracking-widest text-slate-500 hover:text-white"
-                  >
-                    Disconnect
-                  </Button>
-                </div>
-              ) : (
+            <div className="p-4 rounded-xl bg-slate-900/50 border border-white/5">
+              <label className="text-[9px] uppercase font-bold text-slate-500 block mb-2">Stellar / Trustless Work Address</label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newWallet}
+                  onChange={(e) => setNewWallet(e.target.value)}
+                  placeholder="G... or 0x..."
+                  className="flex-grow bg-white/5 border border-white/5 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500/50"
+                />
                 <Button 
-                  variant="primary" 
                   size="sm" 
-                  onClick={handleConnect}
-                  className="w-full h-10 text-[10px] uppercase font-bold tracking-widest rounded-lg group"
+                  onClick={handleUpdateWallet} 
+                  isLoading={isUpdating}
+                  className="px-4"
                 >
-                  Connect Stellar <ChevronRight className="w-3 h-3 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                  Save
                 </Button>
-              )}
+              </div>
+              <p className="text-[9px] text-slate-500 mt-2 italic">* This address is used for all on-chain escrow interactions.</p>
             </div>
-
-            <div className="flex justify-between items-center p-4 rounded-xl bg-slate-900/50 border border-white/5 opacity-50">
+            
+            <div className="flex justify-between items-center p-4 rounded-xl bg-slate-900/50 border border-white/5">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
                   <Globe className="w-4 h-4" />
@@ -731,7 +708,7 @@ const WalletView = ({ profile }: { profile: any }) => {
           </div>
         </Card>
 
-        <WalletValidationGate address={walletAddress || profile?.walletAddress} />
+        <WalletValidationGate address={profile?.walletAddress} />
       </div>
 
       <div className="lg:col-span-8">
@@ -878,7 +855,7 @@ const HowItWorksSection = () => (
             bg: 'bg-emerald-500/10'
           },
         ].map((item, i) => (
-          <Card key={item.step} variant="glass" className="p-6 sm:p-12 group relative overflow-hidden border-white/5 hover:border-white/20 transition-all duration-500">
+            <Card variant="glass" className="p-6 sm:p-12 group relative overflow-hidden border-white/5 hover:border-white/20 transition-all duration-500">
               <span className="absolute -top-6 -right-6 text-7xl sm:text-9xl font-black text-white/[0.03] pointer-events-none group-hover:text-indigo-500/5 transition-all">{item.step}</span>
               
               <div className={cn("w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl flex items-center justify-center mb-6 sm:mb-8 ring-1 ring-white/10 shadow-2xl group-hover:scale-110 transition-transform", item.bg, item.color)}>
@@ -1240,26 +1217,14 @@ const UserDashboard = (props: { user: any }) => {
 const UserDashboardContent = ({ user }: { user: any }) => {
   const [activeView, setActiveView] = useState<View>('overview');
   const [isCircleModalOpen, setIsCircleModalOpen] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(null);
   const [editingCircle, setEditingCircle] = useState<any>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const { address, isConnected: isEvmConnected, isConnecting: isEvmConnecting } = useAccount();
-  const { disconnect: disconnectEvm } = useDisconnect();
-  const { walletAddress: stellarAddress, walletName: stellarWalletName } = useWalletContext();
-  const { handleConnect: handleStellarConnect, handleDisconnect: disconnectStellar } = useStellarWallet();
-  
-  const isConnected = isEvmConnected || !!stellarAddress;
-  const isConnecting = isEvmConnecting;
-  const addressToShow = stellarAddress || address;
-
-  const handleUnifiedDisconnect = async () => {
-    if (stellarAddress) {
-      await disconnectStellar();
-    }
-    if (isEvmConnected) {
-      disconnectEvm();
-    }
-  };
+  const { address, isConnected, isConnecting } = useAccount();
+  const { disconnect } = useDisconnect();
   
   const [circles, setCircles] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -1309,9 +1274,9 @@ const UserDashboardContent = ({ user }: { user: any }) => {
 
   useEffect(() => {
     if (user) {
-      ajoService.syncProfile(user, stellarAddress || undefined);
+      ajoService.syncProfile(user);
     }
-  }, [user?.uid, stellarAddress]);
+  }, [user?.uid]);
 
   useEffect(() => {
     if (user) {
@@ -1490,7 +1455,7 @@ const UserDashboardContent = ({ user }: { user: any }) => {
             <div className="lg:col-span-8 flex flex-col gap-8">
               {isConnected && (
                 <WalletValidationGate 
-                  address={addressToShow} 
+                  address={address} 
                   onValidated={handleWalletValidated} 
                 />
               )}
@@ -1635,6 +1600,16 @@ const UserDashboardContent = ({ user }: { user: any }) => {
         onClose={() => { setIsCircleModalOpen(false); setEditingCircle(null); }} 
         circle={editingCircle}
       />
+      <WalletConnectionModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+        onConnect={(networkId) => setSelectedNetworkId(networkId)}
+      />
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onOpenWalletModal={() => setIsWalletModalOpen(true)}
+      />
       <OnboardingModal
         isOpen={isOnboardingOpen}
         onClose={() => setIsOnboardingOpen(false)}
@@ -1697,21 +1672,13 @@ const UserDashboardContent = ({ user }: { user: any }) => {
             </span>
           </div>
           {isConnected ? (
-            <Button variant="ghost" size="sm" onClick={handleUnifiedDisconnect} className="rounded-xl bg-white/5 hover:bg-white/10 flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-2 sm:px-4">
-              <span className="hidden xs:inline">{formatAddress(addressToShow)}</span>
-              <span className="xs:hidden">{addressToShow?.slice(0,4)}...</span>
+            <Button variant="ghost" size="sm" onClick={() => disconnect()} className="rounded-xl bg-white/5 hover:bg-white/10 flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-2 sm:px-4">
+              <span className="hidden xs:inline">{formatAddress(address)}</span>
+              <span className="xs:hidden">{address?.slice(0,4)}...</span>
               <LogOut className="ml-1 sm:ml-2 w-3 h-3" />
             </Button>
           ) : (
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={async () => {
-                const success = await handleStellarConnect();
-                if (success) setActiveView('overview');
-              }} 
-              className="rounded-xl flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-3 sm:px-4"
-            >
+            <Button variant="primary" size="sm" onClick={() => setIsWalletModalOpen(true)} className="rounded-xl flex h-8 sm:h-9 text-[9px] sm:text-[10px] px-3 sm:px-4">
               Connect
             </Button>
           )}
@@ -1754,7 +1721,7 @@ const UserDashboardContent = ({ user }: { user: any }) => {
 export default function App() {
   const [user, loading] = useAuthState(auth);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const { handleConnect: handleStellarConnect } = useStellarWallet();
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   if (loading) {
     return (
@@ -1782,7 +1749,7 @@ export default function App() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <LandingPage onGetStarted={handleStellarConnect} />
+            <LandingPage onGetStarted={() => setIsAuthModalOpen(true)} />
           </motion.div>
         ) : (
           <motion.div
@@ -1799,8 +1766,14 @@ export default function App() {
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
+        onOpenWalletModal={() => setIsWalletModalOpen(true)}
       />
-      <Toaster position="top-right" richColors />
+      
+      <WalletConnectionModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+        onConnect={() => {}} 
+      />
     </div>
   );
 }

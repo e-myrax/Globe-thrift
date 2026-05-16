@@ -14,21 +14,14 @@ import {
 import { Button } from './Button';
 import { Card } from './Card';
 import { signInWithGoogle } from '../../lib/firebase';
-import { useStellarWallet } from '../../hooks/useStellarWallet';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: boolean | any;
+  onOpenWalletModal: () => void;
 }
 
-export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
-  const { handleConnect } = useStellarWallet();
-
-  const handleStellarConnect = async () => {
-    await handleConnect();
-    onClose();
-  };
-
+export const AuthModal = ({ isOpen, onClose, onOpenWalletModal }: AuthModalProps) => {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -70,20 +63,38 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
               </div>
 
               <div className="space-y-4 relative">
-                {/* Stellar Wallet */}
+                {/* Google Sign In */}
                 <button
-                  onClick={handleStellarConnect}
+                  onClick={() => {
+                    signInWithGoogle();
+                    onClose();
+                  }}
+                  className="w-full group flex items-center gap-4 p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/30 hover:bg-white/[0.08] transition-all text-left"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                    <img src="https://www.google.com/favicon.ico" alt="Google" className="w-6 h-6 grayscale group-hover:grayscale-0 transition-all" />
+                  </div>
+                  <div className="flex-grow">
+                    <p className="text-white font-bold text-sm">Continue with Google</p>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">Quick Social Gateway</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-indigo-400 transition-colors" />
+                </button>
+
+                {/* Web3 Wallet */}
+                <button
+                  onClick={() => {
+                    onOpenWalletModal();
+                    onClose();
+                  }}
                   className="w-full group flex items-center gap-4 p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 hover:border-indigo-400/40 hover:bg-indigo-500/20 transition-all text-left"
                 >
                   <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
                     <Wallet className="w-6 h-6" />
                   </div>
                   <div className="flex-grow">
-                    <div className="flex items-center gap-2">
-                      <p className="text-white font-bold text-sm">Connect Stellar Wallet</p>
-                      <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter ring-1 ring-emerald-500/30">Native Support</span>
-                    </div>
-                    <p className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold mt-0.5">Freighter & Albedo Modules</p>
+                    <p className="text-white font-bold text-sm">Connect Web3 Wallet</p>
+                    <p className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold mt-0.5">Stellar & EVM Protocol</p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-indigo-600 group-hover:text-indigo-400 transition-colors" />
                 </button>
