@@ -3,9 +3,10 @@ import { useWalletContext } from "../providers/WalletProvider";
 import { auth } from "../lib/firebase";
 import { signInAnonymously } from "firebase/auth";
 
+import { toast } from "sonner";
+
 /**
  * Custom hook that provides wallet connection and disconnection functionality
- * Integrates with the Stellar Wallet Kit (v2.x static API) and manages wallet state through context
  */
 export const useStellarWallet = () => {
   // Get wallet management functions from the context
@@ -29,10 +30,11 @@ export const useStellarWallet = () => {
 
       // 3. Store wallet information in the context and localStorage
       setWalletInfo(address, walletName);
+      toast.success("Wallet connected successfully!");
       return true;
     } catch (error) {
       console.error("Error during Stellar wallet connection:", error);
-      return false;
+      throw error; // Re-throw to be handled in handleConnect
     }
   };
 
@@ -42,11 +44,12 @@ export const useStellarWallet = () => {
   const disconnectWallet = async () => {
     try {
       await StellarWalletsKit.disconnect();
+      clearWalletInfo();
+      toast.success("Wallet disconnected");
     } catch (e) {
-      console.warn("Disconnect failed", e);
+      console.error("Disconnect failed", e);
+      throw e;
     }
-    clearWalletInfo();
-    // Optional: await auth.signOut(); // Usually better to keep session unless they explicitly logout
   };
 
   /**
@@ -57,6 +60,7 @@ export const useStellarWallet = () => {
       return await connectWallet();
     } catch (error) {
       console.error("Error connecting wallet:", error);
+      toast.error("Failed to connect wallet. Please try again.");
       return false;
     }
   };
@@ -69,6 +73,7 @@ export const useStellarWallet = () => {
       await disconnectWallet();
     } catch (error) {
       console.error("Error disconnecting wallet:", error);
+      toast.error("Failed to disconnect wallet properly.");
     }
   };
 

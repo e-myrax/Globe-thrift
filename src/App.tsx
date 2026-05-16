@@ -47,6 +47,7 @@ import { trustlessWorkService } from './services/trustlessWorkService';
 import { WalletValidationGate } from './components/WalletValidationGate';
 import { OnboardingModal } from './components/ui/OnboardingModal';
 import { AuthModal } from './components/ui/AuthModal';
+import { Toaster } from 'sonner';
 
 import { Logo } from './components/Logo';
 
@@ -1799,6 +1800,7 @@ export default function App() {
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
       />
+      <Toaster position="top-right" richColors />
     </div>
   );
 }
