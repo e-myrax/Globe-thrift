@@ -17,7 +17,7 @@ Our platform not only provides 0% interest credit and structured savings but is 
 
 Experience the infrastructure live in your browser:
 
-👉 **[Launch the Live Demo App](https://globethrift.vercel.app/)** 
+👉 **[Launch the Live Demo App](https://globe-thrift.vercel.app/)** 
 
 > 💡 **Important Authentication Guide:**  
 > To ensure seamless setup and instant synchronization with your profile security tiers, **please use Google Authentication** when signing up or logging into the dashboard for the first time. This guarantees smooth integration with our identity verification flow.
